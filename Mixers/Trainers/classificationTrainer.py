@@ -16,7 +16,6 @@ from datetime import datetime
 
 from Mixers.Helper.helper import InteractivePlot, generate_dashboard
 from Mixers.Trainers import hamiltorch
-from Mixers.NLPMixer.nlpmixer import get_collate_projective_layer
 
 from rich.align import Align
 from rich.panel import Panel
