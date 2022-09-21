@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cgi import test
 import imp
 
 import torch
@@ -14,7 +15,7 @@ from tqdm import tqdm
 import os
 from datetime import datetime
 
-from Mixers.Helper.helper import InteractivePlot, generate_dashboard
+from Mixers.Helper.helper import InteractivePlot, generate_dashboard, collate_callable
 from Mixers.Trainers import hamiltorch
 
 from rich.align import Align
@@ -29,10 +30,10 @@ class Trainer():
         self.model = model.to(device)
         self.device = device
         self.save_path = save_path
-        
-        if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=2)
-        if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=False, num_workers=2)
-        if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=False, num_workers=2)
+
+        if traindataset is not None: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=2)
+        if testdataset is not None: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=False, num_workers=2)
+        if evaldataset is not None: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=False, num_workers=2)
         self.batch_size = batch_size
         
         self.console = Console()
@@ -60,6 +61,9 @@ class ClassificationTrainer(Trainer):
         self.nb_epochs = nb_epochs
         if self.display_loss: self.interactivePlot = InteractivePlot(1)
 
+        if self.model.textFormat == "tokenized" or self.model.textFormat == "3grammed":
+            self.trainloader.collate_fn = collate_callable(traindataset.sentenceLength)
+            self.testloader.collate_fn = collate_callable(testdataset.sentenceLength)
 
     def train(self):
         self.console.print(Align("\n\nStarting training", align="center"))

@@ -1,1 +1,1 @@
-from .helper import get_device, generate_dashboard
+from .helper import get_device, generate_dashboard, collate_callable
