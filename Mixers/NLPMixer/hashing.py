@@ -22,12 +22,12 @@ class MultiHashing():
             mask = self._memomask[n] = random.getrandbits(32)
             
         def myhash(x):
-            if x not in self.lookupDict:
-                self.lookupDict[x] = int.from_bytes(hashlib.sha1(x.encode('UTF-8')).digest()[:4], 'little') ^ mask
-            
-            return self.lookupDict[x]
+            return int.from_bytes(hashlib.sha1(x.encode('UTF-8')).digest()[:4], 'little') ^ mask
 
         return myhash
     
     def compute_hashes(self, x:str) -> list[int]:
-        return [hashFunc(x) for hashFunc in self.hashes]
+        if x not in self.lookupDict:
+            self.lookupDict[x] = [hashFunc(x) for hashFunc in self.hashes]
+        return self.lookupDict[x]
+        

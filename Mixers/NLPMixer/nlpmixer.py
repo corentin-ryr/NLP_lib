@@ -123,6 +123,6 @@ class NLP_Mixer(nn.Module):
         x = self.layer_norm(x)
         x = torch.mean(x, dim=1)
         
-        final = torch.softmax(self.mlp_head(x), 1) if self.nbClasses >= 2 else torch.squeeze(self.mlp_head(x))
+        final = torch.softmax(self.mlp_head(x), 1) if self.nbClasses >= 2 else torch.sigmoid(torch.squeeze(self.mlp_head(x)))
         
         return final

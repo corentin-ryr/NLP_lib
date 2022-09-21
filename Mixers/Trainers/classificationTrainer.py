@@ -1,5 +1,4 @@
 from __future__ import annotations
-import imp
 
 import torch
 from torch import nn
@@ -75,7 +74,7 @@ class ClassificationTrainer(Trainer):
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
 
-                if type(self.criterion) is nn.BCEWithLogitsLoss: 
+                if type(self.criterion) is nn.BCELoss: 
                     labels = labels.type(torch.float)
                 loss = self.criterion(outputs, labels.to(self.device))
                 loss.backward()
