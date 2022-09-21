@@ -35,32 +35,22 @@ class ProjectiveLayer(nn.Module):
                 
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
-        if self.textFormat == "raw":
-            for idxSentence, sentence in enumerate(batchSentences):            
-                for idx, word in enumerate(word_tokenize(sentence)[:self.sentenceLength]):
-                    sentencesMinHashes[idxSentence, idx] = np.min(np.array(
-                        [self.hashFunc.compute_hashes("".join(i)) for i in ngrams(word, 3, pad_right=True, right_pad_symbol="")]
-                        ), axis=0)
-
-        elif self.textFormat == "tokenized":
-            for idxSentence, sentence in enumerate(batchSentences):            
-                for idx, word in enumerate(sentence[:self.sentenceLength]):
-                    sentencesMinHashes[idxSentence, idx] = np.min(np.array(
-                        [self.hashFunc.compute_hashes("".join(i)) for i in ngrams(word, 3, pad_right=True, right_pad_symbol="")]
-                        ), axis=0)
-
-        elif self.textFormat == "3grammed":
-            for idxSentence, sentence in enumerate(batchSentences):
-                for idx, word in enumerate(sentence):
-                    sentencesMinHashes[idxSentence, idx] = np.min(np.array(
-                        [self.hashFunc.compute_hashes(gram) for gram in word]
-                        ), axis=0)
-        else: raise NotImplementedError("Use of of the supported kind of text.")
         
+        for idxSentence, sentence in enumerate(batchSentences):
+            if self.textFormat == "raw": sentence = word_tokenize(sentence)[:self.sentenceLength]
+            for idx, word in enumerate(sentence):
+                if self.textFormat == "raw" or self.textFormat == "tokenized":
+                    wordGrammed = ["".join(i) for i in ngrams(word, 3)]
+                    if not wordGrammed: wordGrammed = [word]
+                    word = wordGrammed
+
+                sentencesMinHashes[idxSentence, idx] = np.min(np.array(
+                    [self.hashFunc.compute_hashes(gram) for gram in word]
+                    ), axis=0)
+
         floatCounter = self.counting_bloom_filter(sentencesMinHashes)
-        
         batchmovingWindowFloatCounter = self.moving_window(floatCounter)
-        
+
         return batchmovingWindowFloatCounter
     
  
@@ -129,14 +119,10 @@ class NLP_Mixer(nn.Module):
 
         self.mlp_head = nn.Linear(self.bottleneckParam, self.nbClasses)
             
-    def forward(self, x:Union[list[str], torch.Tensor]):
-        startime = time.time()
+    def forward(self, x:Union[list[str], torch.Tensor]):        
         
         if self.applyPreprocessing:
             x = self.projectiveLayer(x).to(self.device)
-
-        print(f"Projection time: {time.time() - startime}")
-        startime = time.time()
 
         x = self.bottleneck(x)        
         
@@ -145,6 +131,4 @@ class NLP_Mixer(nn.Module):
         x = torch.mean(x, dim=1)
         
         final = torch.softmax(self.mlp_head(x), 1) if self.nbClasses >= 2 else torch.squeeze(self.mlp_head(x))
-        
-        print(f"Network time: {time.time() - startime}")
         return final

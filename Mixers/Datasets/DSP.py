@@ -85,12 +85,13 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
 class IMDBSentimentAnalysis(Dataset):
     kinds = {"raw", "tokenized", "3grammed"}
 
-    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", sentenceLength:int=200) -> None:
+    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", sentenceLength:int=200, keepInMemory:bool=False) -> None:
         
         self.dirpath = "data/imdb/" + ("train" if train else "test")
         if textFormat not in IMDBSentimentAnalysis.kinds: raise ValueError(f"Kind must be in {IMDBSentimentAnalysis.kinds}")
         self.textFormat = textFormat
         self.sentenceLength = sentenceLength
+        self.keepInMemory = keepInMemory
 
         fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.json"))
         fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.json"))
@@ -104,6 +105,8 @@ class IMDBSentimentAnalysis(Dataset):
                                       torch.ones((len(fileListPos)), dtype=torch.long) 
                                       ))
         
+        if self.keepInMemory: self.fullSamples = [0] * len(self.samples)
+
         if shuffle: self._shuffle()
         if limit: self.limit = limit
         else: self.limit =  float("inf")
@@ -118,8 +121,13 @@ class IMDBSentimentAnalysis(Dataset):
     def _read_file(self, idx):
         filename = self.samples[idx]
         
+        if self.keepInMemory and self.fullSamples[idx]:
+            return self.fullSamples[idx]
+
         with open(filename, 'r') as file:
             dictionary = json.loads("".join(file.readlines()))
+
+        if self.keepInMemory: self.fullSamples[idx] = dictionary[self.textFormat]
 
         return dictionary[self.textFormat]
         
@@ -191,7 +199,7 @@ if __name__ == "__main__":
 
     dataset = IMDBSentimentAnalysis()
     # dataset = MTOPEnglish()
-    dataset = IMDBSentimentAnalysisDatasetCreator(train=True)
+    dataset = IMDBSentimentAnalysisDatasetCreator(train=False)
     
     dataloader = DataLoader(dataset, batch_size=5)
     for sample, label in tqdm(dataloader, desc="Reading train samples."):

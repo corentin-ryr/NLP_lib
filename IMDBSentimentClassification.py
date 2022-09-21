@@ -12,7 +12,7 @@ if __name__ == "__main__":
     
     
 
-    traindataset = IMDBSentimentAnalysis(textFormat="3grammed", sentenceLength=sentenceLength)
+    traindataset = IMDBSentimentAnalysis(textFormat="3grammed", sentenceLength=sentenceLength, limit=500)
     testdataset = IMDBSentimentAnalysis(train=False, textFormat="3grammed", sentenceLength=sentenceLength)
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, device=device, textFormat="3grammed")
     

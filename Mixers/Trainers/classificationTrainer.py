@@ -31,9 +31,9 @@ class Trainer():
         self.device = device
         self.save_path = save_path
 
-        if traindataset is not None: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=2)
-        if testdataset is not None: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=False, num_workers=2)
-        if evaldataset is not None: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=False, num_workers=2)
+        if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=2)
+        if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=2)
+        if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=2)
         self.batch_size = batch_size
         
         self.console = Console()
@@ -91,7 +91,7 @@ class ClassificationTrainer(Trainer):
             self.console.print(f'Average loss at epoch {epoch}: {running_loss / len(self.trainloader):.3f}')
             running_loss = 0.0
             
-            if epoch % 5 == 0: self.validate(light=True)
+            if epoch % 5 == 4: self.validate(light=True)
         
         self.console.print(Align("\n\n[bold green]Finished Training", align="center"))
         
@@ -100,7 +100,7 @@ class ClassificationTrainer(Trainer):
         
         self.model.eval()
         
-        with Progress(transient=True) as progress:            
+        with Progress(transient=True) as progress:
             for i, data in progress.track(enumerate(self.testloader), total=len(self.testloader) if not light else 5):
                 if light and i == 5: break
                 inputs, labels = data
