@@ -30,3 +30,4 @@ class MultiHashing():
         if x not in self.lookupDict:
             self.lookupDict[x] = [hashFunc(x) for hashFunc in self.hashes]
         return self.lookupDict[x]
+        

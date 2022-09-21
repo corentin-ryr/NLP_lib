@@ -7,6 +7,8 @@ from torch import nn
 from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
+import torch.optim as optim
+
 
 from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision
 from torchmetrics.metric import Metric
@@ -72,14 +74,12 @@ class ClassificationTrainer(Trainer):
             self.model.train()
 
             running_loss = 0.0
-            for i, data in tqdm(enumerate(self.trainloader), total=len(self.trainloader), desc=f"Epoch {epoch}"):
-                
-                inputs, labels = data # get the inputs; data is a list of [inputs, labels]
+            for inputs, labels in tqdm(self.trainloader, total=len(self.trainloader), desc=f"Epoch {epoch}"):
                 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
 
-                if type(self.criterion) is nn.BCEWithLogitsLoss: 
+                if type(self.criterion) is nn.BCELoss: 
                     labels = labels.type(torch.float)
                 loss = self.criterion(outputs, labels.to(self.device))
                 loss.backward()
@@ -97,9 +97,9 @@ class ClassificationTrainer(Trainer):
         
 
     def validate(self, light=False):
-        
         self.model.eval()
-        
+        for metric in self.metric_set: metric.reset()
+
         with Progress(transient=True) as progress:
             for i, data in progress.track(enumerate(self.testloader), total=len(self.testloader) if not light else 5):
                 if light and i == 5: break
@@ -111,7 +111,6 @@ class ClassificationTrainer(Trainer):
 
                 for metric in self.metric_set:
                     metric.update(outputs, labels)
-        
         
         layout = generate_dashboard(self.metric_set)
         self.console.print(Panel(layout, title=f"[green]Validation", border_style="green", height=20))

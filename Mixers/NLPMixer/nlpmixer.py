@@ -35,7 +35,6 @@ class ProjectiveLayer(nn.Module):
                 
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
-        
         for idxSentence, sentence in enumerate(batchSentences):
             if self.textFormat == "raw": sentence = word_tokenize(sentence)[:self.sentenceLength]
             for idx, word in enumerate(sentence):
@@ -56,14 +55,11 @@ class ProjectiveLayer(nn.Module):
  
     def counting_bloom_filter(self, F:np.ndarray) -> torch.Tensor:
         """_summary_
-
         Args:
             F (list[list[int]]): input token hashes (F). Size: nb words x nb filters
-
         Returns:
             torch.Tensor: Float counting tensor. Size: bloom length x max sentence length
         """
-        
         Fp = np.remainder(F, self.bloomLength)
         CountingBloom = torch.tensor(np.apply_along_axis(lambda x: np.bincount(x, minlength=self.bloomLength), axis=2, arr=Fp))
         return torch.transpose(CountingBloom, 1, 2)
@@ -129,6 +125,7 @@ class NLP_Mixer(nn.Module):
         x = self.mixer_blocks(x)
         x = self.layer_norm(x)
         x = torch.mean(x, dim=1)
-        
-        final = torch.softmax(self.mlp_head(x), 1) if self.nbClasses >= 2 else torch.squeeze(self.mlp_head(x))
+        x = self.mlp_head(x)
+
+        final = torch.softmax(x, 1) if self.nbClasses > 2 else torch.sigmoid(torch.squeeze(x))
         return final
