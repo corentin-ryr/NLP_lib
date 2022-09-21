@@ -16,7 +16,6 @@ from datetime import datetime
 
 from Mixers.Helper.helper import InteractivePlot, generate_dashboard
 from Mixers.Trainers import hamiltorch
-from Mixers.NLPMixer.nlpmixer import get_collate_projective_layer
 
 from rich.align import Align
 from rich.panel import Panel
@@ -88,7 +87,7 @@ class ClassificationTrainer(Trainer):
             self.console.print(f'Average loss at epoch {epoch}: {running_loss / len(self.trainloader):.3f}')
             running_loss = 0.0
             
-            if epoch % 5 == 0: self.validate(light=True)
+            if epoch % 5 == 4: self.validate(light=True)
         
         self.console.print(Align("\n\n[bold green]Finished Training", align="center"))
         

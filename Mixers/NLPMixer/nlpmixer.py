@@ -33,7 +33,6 @@ class ProjectiveLayer(nn.Module):
     def forward(self, batchSentences:list[str]) -> torch.Tensor:
                 
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
-        starttime = time.time()
 
         for idxSentence, sentence in enumerate(batchSentences):            
 
@@ -42,8 +41,6 @@ class ProjectiveLayer(nn.Module):
                     [self.hashFunc.compute_hashes("".join(i)) for i in ngrams(word, 3, pad_right=True, right_pad_symbol="")]
                     ), axis=0)
         
-        print(f"Hashing time: {time.time() - starttime}")
-
         floatCounter = self.counting_bloom_filter(sentencesMinHashes)
         
         batchmovingWindowFloatCounter = self.moving_window(floatCounter)
@@ -77,71 +74,6 @@ class ProjectiveLayer(nn.Module):
             movingFloatCounter[:, (i + self.windowSize) * m:(i + self.windowSize + 1) * m, :s - i] = floatCounter[:, :, i:]
         
         return movingFloatCounter
-
-def get_collate_projective_layer(N:int=64, S:int=100, M:int=1024, W:int=1):
-
-    nbHashFunc = N
-    sentenceLength = S
-    bloomLength = M
-    windowSize = W
-    hashFunc = MultiHashing(nbHashFunc)
-
-    tokenizer = get_tokenizer('basic_english')
-
-    global collate_function
-    def collate_function(data):
-        data = map(projective_layer, data)
-        samples, labels = zip(*data)
-        labels = torch.tensor(labels, dtype=torch.float).detach()
-   
-        return samples, labels
-
-
-    def projective_layer(data:tuple[str, int]):
-        sentence, label = data
-        sentenceMinHashes = np.zeros( (sentenceLength, nbHashFunc), dtype=np.int64 )
-        
-        for idx, word in enumerate(tokenizer(sentence)[:sentenceLength]):
-            
-            sentenceMinHashes[idx] = np.min(np.array(
-                [hashFunc.compute_hashes("".join(i)) for i in ngrams(word, 3, pad_right=True, right_pad_symbol="")]
-                ), axis=0)
-                
-            
-        floatCounter = counting_bloom_filter(sentenceMinHashes)
-        
-        batchmovingWindowFloatCounter = moving_window(floatCounter)
-        
-        return batchmovingWindowFloatCounter, label
-
-    def counting_bloom_filter(F:np.ndarray) -> torch.Tensor:
-        """_summary_
-
-        Args:
-            F (ndarray): input token hashes (F). Size: nb words x nb hash functions
-
-        Returns:
-            torch.Tensor: Float counting tensor. Size: bloom length x max sentence length
-        """
-        
-        Fp = np.remainder(F, bloomLength)
-        CountingBloom = torch.tensor(np.apply_along_axis(lambda x: np.bincount(x, minlength=bloomLength), axis=1, arr=Fp))
-        return torch.transpose(CountingBloom)
-        
-    
-    def moving_window(floatCounter:torch.Tensor) -> torch.Tensor:
-        m, s = floatCounter.shape
-        movingFloatCounter = torch.zeros( (( 2 * windowSize + 1) * m, s) )
-        
-        for idx, i in enumerate(range(windowSize, 0, -1)):
-            movingFloatCounter[idx * m:(idx + 1) * m, i:] = floatCounter[:, :s - i]
-                
-        for i in range(windowSize + 1):
-            movingFloatCounter[(i + windowSize) * m:(i + windowSize + 1) * m, :s - i] = floatCounter[:, i:]
-        
-        return movingFloatCounter
-    
-    return collate_function
 
         
 class NLP_Mixer(nn.Module):

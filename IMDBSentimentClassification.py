@@ -1,5 +1,5 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
-from Mixers.NLPMixer.nlpmixer import NLP_Mixer, get_collate_projective_layer
+from Mixers.NLPMixer.nlpmixer import NLP_Mixer
 from Mixers.Trainers.trainerDirector import TrainerDirector
 from Mixers.Helper.helper import get_device
 
@@ -9,7 +9,7 @@ if __name__ == "__main__":
     
     
 
-    traindataset = IMDBSentimentAnalysis()
+    traindataset = IMDBSentimentAnalysis(limit=500)
     testdataset = IMDBSentimentAnalysis(train=False)
     model = NLP_Mixer(sentenceLength=200, depth=2, device=device)
     
