@@ -29,9 +29,9 @@ class Trainer():
         self.device = device
         self.save_path = save_path
         
-        if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=2)
-        if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=False, num_workers=2)
-        if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=False, num_workers=2)
+        if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)
         self.batch_size = batch_size
         
         self.console = Console()
@@ -67,14 +67,16 @@ class ClassificationTrainer(Trainer):
             self.model.train()
 
             running_loss = 0.0
+            train_accuracy = Accuracy()
             for i, data in tqdm(enumerate(self.trainloader), total=len(self.trainloader), desc=f"Epoch {epoch}"):
                 
                 inputs, labels = data # get the inputs; data is a list of [inputs, labels]
-                
+
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
 
-                if type(self.criterion) is nn.BCELoss: 
+                train_accuracy.update(outputs, labels)
+                if type(self.criterion) is nn.BCELoss:
                     labels = labels.type(torch.float)
                 loss = self.criterion(outputs, labels.to(self.device))
                 loss.backward()
@@ -84,6 +86,7 @@ class ClassificationTrainer(Trainer):
             
             if self.display_loss: self.interactivePlot.update_plot(running_loss / len(self.trainloader))
             self.console.print(f'Average loss at epoch {epoch}: {running_loss / len(self.trainloader):.3f}')
+            self.console.print(f'Acuracy at epoch {epoch}: {train_accuracy.compute().item():.3f}')
             running_loss = 0.0
             
             if epoch % 5 == 4: self.validate(light=True)
@@ -94,7 +97,11 @@ class ClassificationTrainer(Trainer):
     def validate(self, light=False):
         
         self.model.eval()
+
+        for metric in self.metric_set: metric.reset()
         
+        test_accuracy = Accuracy()
+
         with Progress(transient=True) as progress:            
             for i, data in progress.track(enumerate(self.testloader), total=len(self.testloader) if not light else 5):
                 if light and i == 5: break
@@ -104,10 +111,10 @@ class ClassificationTrainer(Trainer):
                 outputs = outputs.detach().cpu()
                 labels = labels.detach()
 
+                test_accuracy.update(outputs, labels)
                 for metric in self.metric_set:
                     metric.update(outputs, labels)
-        
-        
+
         layout = generate_dashboard(self.metric_set)
         self.console.print(Panel(layout, title=f"[green]Validation", border_style="green", height=20))
         
@@ -121,12 +128,12 @@ class ClassificationTrainer(Trainer):
     supportedMetrics = {Accuracy, Recall, Precision}
     def set_validation_metrics(self, metrics_set:set[Metric], num_classes:int):
         self.num_classes = num_classes
-        self.metric_set:set[Metric] = set()
+        self.metric_set:list[Metric] = []
         for metric in metrics_set:
             if metric in ClassificationTrainer.supportedMetrics: 
-                self.metric_set.add(metric(num_classes if num_classes > 2 else 1))
+                self.metric_set.append(metric(num_classes) if num_classes > 2 else metric())
             if metric in {ConfusionMatrix}:
-                self.metric_set.add(metric(num_classes))
+                self.metric_set.append(metric(num_classes))
             
         return self
     

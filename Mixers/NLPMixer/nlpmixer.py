@@ -8,10 +8,8 @@ from Mixers.NLPMixer.hashing import MultiHashing
 from Mixers.MLPMixer.mlpmixer import MixerBlock
 
 from einops.layers.torch import Rearrange
-import time
 import numpy as np
 
-from torchtext.data.utils import get_tokenizer
 
 class ProjectiveLayer(nn.Module):
     
@@ -35,7 +33,6 @@ class ProjectiveLayer(nn.Module):
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
         for idxSentence, sentence in enumerate(batchSentences):            
-
             for idx, word in enumerate(word_tokenize(sentence)[:self.sentenceLength]):
                 sentencesMinHashes[idxSentence, idx] = np.min(np.array(
                     [self.hashFunc.compute_hashes("".join(i)) for i in ngrams(word, 3, pad_right=True, right_pad_symbol="")]
@@ -111,13 +108,14 @@ class NLP_Mixer(nn.Module):
         self.layer_norm = nn.LayerNorm(self.bottleneckParam)
 
         self.mlp_head = nn.Linear(self.bottleneckParam, self.nbClasses)
+
             
     def forward(self, x:Union[list[str], torch.Tensor]):
         
         if self.applyPreprocessing:
             x = self.projectiveLayer(x).to(self.device)
 
-        x = self.bottleneck(x)        
+        x = self.bottleneck(x)
         
         x = self.mixer_blocks(x)
         x = self.layer_norm(x)

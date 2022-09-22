@@ -3,16 +3,15 @@ from Mixers.NLPMixer.nlpmixer import NLP_Mixer
 from Mixers.Trainers.trainerDirector import TrainerDirector
 from Mixers.Helper.helper import get_device
 
+import torch
+
 if __name__ == "__main__":
-    useGPU = True
+    useGPU = False
     device = get_device(useGPU)
     
-    
-
-    traindataset = IMDBSentimentAnalysis(limit=500)
+    traindataset = IMDBSentimentAnalysis()
     testdataset = IMDBSentimentAnalysis(train=False)
-    model = NLP_Mixer(sentenceLength=200, depth=2, device=device)
-    
+    model = NLP_Mixer(sentenceLength=100, depth=2, device=device)
     
     trainer = TrainerDirector.get_binary_trainer(model=model, traindataset=traindataset, testdataset=testdataset, batch_size=256, device=device, nb_epochs=20) 
     

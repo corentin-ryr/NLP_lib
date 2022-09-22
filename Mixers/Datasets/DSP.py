@@ -4,6 +4,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset, DataLoader
+import glob
 
 class IMDBSentimentAnalysis(Dataset):
     
@@ -11,8 +12,8 @@ class IMDBSentimentAnalysis(Dataset):
         
         self.dirpath = "data/imdb/" + ("train" if train else "test")
         
-        fileListPos = os.listdir(os.path.join(self._get_path(), "pos"))
-        fileListNeg = os.listdir(os.path.join(self._get_path(), "neg"))
+        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.txt"))
+        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.txt"))
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg), 
@@ -36,9 +37,8 @@ class IMDBSentimentAnalysis(Dataset):
         
     def _read_file(self, idx):
         filename = self.samples[idx]
-        label = "pos" if self.labels[idx] else "neg"
         
-        with open(os.path.join(self.dirpath, label, filename), 'r') as file:
+        with open(filename, 'r') as file:
             return "".join(file.readlines())
         
     def _get_path(self):
@@ -108,12 +108,12 @@ class MTOPEnglish(Dataset):
 if __name__ == "__main__":
 
     dataset = IMDBSentimentAnalysis()
-    dataset = MTOPEnglish()
+    # dataset = MTOPEnglish()
     
-    dataloader = DataLoader(dataset, batch_size=5)
+    dataloader = DataLoader(dataset, batch_size=1)
     for sample, label in tqdm(dataloader, desc="Reading train samples."):
-        # print(sample)
-        # print(label)
-        pass
+        print(sample)
+        print(label)
+
 
     print("All samples read.")
