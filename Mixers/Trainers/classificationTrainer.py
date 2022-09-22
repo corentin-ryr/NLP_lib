@@ -70,12 +70,21 @@ class ClassificationTrainer(Trainer):
     def train(self):
         self.console.print(Align("\n\nStarting training", align="center"))
 
+        # projection = self.model.projectiveLayer
+        # proj1 = projection(["Bonjour"])
+        # proj2 = projection(["Hello"])
+
+        # print(torch.sum(torch.abs(proj1 - proj2)))
+        # # print(projection(["Bonjour"])[0, 0:30, 0:30])
+
+        # raise Exception
+
         for epoch in range(self.nb_epochs):  # loop over the dataset multiple times
             self.model.train()
 
             running_loss = 0.0
             for inputs, labels in tqdm(self.trainloader, total=len(self.trainloader), desc=f"Epoch {epoch}"):
-                
+
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
 
@@ -91,7 +100,7 @@ class ClassificationTrainer(Trainer):
             self.console.print(f'Average loss at epoch {epoch}: {running_loss / len(self.trainloader):.3f}')
             running_loss = 0.0
             
-            if epoch % 5 == 4: self.validate(light=True)
+            # if epoch % 5 == 4: self.validate(light=True)
         
         self.console.print(Align("\n\n[bold green]Finished Training", align="center"))
         

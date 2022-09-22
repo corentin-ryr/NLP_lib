@@ -12,7 +12,7 @@ class TrainerDirector():
     @staticmethod
     def get_binary_trainer(model:nn.Module, device, traindataset:Dataset, testdataset:Dataset, nb_epochs:int=20, batch_size:int=256) -> ClassificationTrainer:
         trainer = ClassificationTrainer(model, nb_epochs=nb_epochs, device=device, traindataset=traindataset, testdataset=testdataset, batch_size=batch_size)
-        return trainer.set_optimizer_and_loss(nn.BCELoss, optim.Adam).set_validation_metrics({ConfusionMatrix, Accuracy, Recall, Precision}, num_classes=2)
+        return trainer.set_optimizer_and_loss(nn.BCELoss, optim.Adam, lr=0.001).set_validation_metrics({ConfusionMatrix, Accuracy, Recall, Precision}, num_classes=2)
 
     @staticmethod
     def get_multiclass_trainer(model:nn.Module, device, traindataset:Dataset, testdataset:Dataset, num_classes:int, nb_epochs:int=20, batch_size:int=256) -> ClassificationTrainer:

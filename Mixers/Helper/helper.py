@@ -109,5 +109,5 @@ class collate_callable():
 
     def pad_list(self, l):
         l = l[:self.sentenceLength]
-        l += [[""]] * (self.sentenceLength - len(l))
+        l += [""] * (self.sentenceLength - len(l))
         return l

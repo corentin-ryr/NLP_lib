@@ -36,7 +36,9 @@ class ProjectiveLayer(nn.Module):
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
         for idxSentence, sentence in enumerate(batchSentences):
-            if self.textFormat == "raw": sentence = word_tokenize(sentence)[:self.sentenceLength]
+            if self.textFormat == "raw":
+                sentence = word_tokenize(sentence)[:self.sentenceLength]
+
             for idx, word in enumerate(sentence):
                 if self.textFormat == "raw" or self.textFormat == "tokenized":
                     wordGrammed = ["".join(i) for i in ngrams(word, 3)]
@@ -46,7 +48,7 @@ class ProjectiveLayer(nn.Module):
                 sentencesMinHashes[idxSentence, idx] = np.min(np.array(
                     [self.hashFunc.compute_hashes(gram) for gram in word]
                     ), axis=0)
-
+            
         floatCounter = self.counting_bloom_filter(sentencesMinHashes)
         batchmovingWindowFloatCounter = self.moving_window(floatCounter)
 
