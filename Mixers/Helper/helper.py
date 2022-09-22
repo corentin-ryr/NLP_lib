@@ -6,7 +6,7 @@ from rich.layout import Layout
 
 import torch
 
-from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision
+from torchmetrics import ConfusionMatrix
 from torchmetrics.metric import Metric
 
 
@@ -94,3 +94,20 @@ def get_device(useGPU):
         return torch.device("mps")
 
     return torch.device("cpu")
+
+
+class collate_callable():
+    def __init__(self, sentenceLength:int=200) -> None:
+        self.sentenceLength = sentenceLength
+
+    def __call__(self, data):
+        data, label = list(zip(*data))
+        data = list(map(lambda x: self.pad_list(x), data))
+        label = torch.stack(label)
+
+        return data, label
+
+    def pad_list(self, l):
+        l = l[:self.sentenceLength]
+        l += [[""]] * (self.sentenceLength - len(l))
+        return l

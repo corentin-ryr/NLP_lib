@@ -4,19 +4,22 @@ import numpy as np
 from tqdm import tqdm
 import torch
 from torch.utils.data import Dataset, DataLoader
+from nltk import word_tokenize, ngrams
+import json
+from bs4 import BeautifulSoup
 import glob
 
-class IMDBSentimentAnalysis(Dataset):
+class IMDBSentimentAnalysisDatasetCreator(Dataset):
     
     def __init__(self, train=True, shuffle=True, limit=None) -> None:
         
         self.dirpath = "data/imdb/" + ("train" if train else "test")
         
-        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.txt"))
-        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.txt"))
+        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*"))
+        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*"))
         
         self.samples = np.concatenate(( 
-                                       np.array(fileListNeg), 
+                                       np.array(fileListNeg),
                                        np.array(fileListPos) 
                                        ))
         self.labels = torch.cat(( 
@@ -24,6 +27,80 @@ class IMDBSentimentAnalysis(Dataset):
                                       torch.ones((len(fileListPos)), dtype=torch.long) 
                                       ))
         
+        self.nbCreated = 0
+
+    def _read_file(self, idx):
+        filename = self.samples[idx]
+        
+        if filename.endswith(".json"):
+            os.remove(filename)
+            return "Deleted"
+
+        with open(filename, 'r') as file:
+            text = "".join(file.readlines())
+            text = BeautifulSoup(text, "lxml").text
+
+            textTokenized = word_tokenize(text)
+            textwordngram = []
+            for word in textTokenized:
+                grams = ["".join(i) for i in ngrams(word, 3)]
+                if not grams: grams = [word]
+                
+                textwordngram.append(grams)
+            
+            dictionary = {
+                "raw": text,
+                "tokenized": textTokenized,
+                "3grammed": textwordngram
+            }
+            
+        with open(filename[:-4] + ".json", 'w') as file:
+            json.dump(dictionary, file)
+            self.nbCreated += 1
+
+        return dictionary["raw"]
+        
+    def _get_path(self):
+        return os.path.join(os.getcwd(), self.dirpath)
+    
+    def __len__(self):
+        return len(self.labels)
+    
+    def __getitem__(self, idx):
+        label = self.labels[idx]
+        sample = self._read_file(idx)
+        
+        return sample, label
+
+class IMDBSentimentAnalysis(Dataset):
+    kinds = {"raw", "tokenized", "3grammed"}
+
+    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", sentenceLength:int=200, keepInMemory:bool=False) -> None:
+        
+        self.dirpath = "data/imdb/" + ("train" if train else "test")
+       
+        if textFormat not in IMDBSentimentAnalysis.kinds: raise ValueError(f"Kind must be in {IMDBSentimentAnalysis.kinds}")
+        self.textFormat = textFormat
+        
+        self.sentenceLength = sentenceLength
+        self.keepInMemory = keepInMemory
+
+        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.json"))
+        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.json"))
+
+        print(len(fileListNeg) + len(fileListPos))
+        
+        self.samples = np.concatenate(( 
+                                       np.array(fileListNeg), 
+                                       np.array(fileListPos) 
+                                       ))
+        self.labels = torch.cat(( 
+                                      torch.zeros((len(fileListNeg)), dtype=torch.long),
+                                      torch.ones((len(fileListPos)), dtype=torch.long) 
+                                      ))
+        
+        if self.keepInMemory: self.fullSamples = [0] * len(self.samples)
+
         if shuffle: self._shuffle()
         if limit: self.limit = limit
         else: self.limit =  float("inf")
@@ -38,8 +115,15 @@ class IMDBSentimentAnalysis(Dataset):
     def _read_file(self, idx):
         filename = self.samples[idx]
         
+        if self.keepInMemory and self.fullSamples[idx]:
+            return self.fullSamples[idx]
+
         with open(filename, 'r') as file:
-            return "".join(file.readlines())
+            dictionary = json.loads("".join(file.readlines()))
+       
+        if self.keepInMemory: self.fullSamples[idx] = dictionary[self.textFormat]
+
+        return dictionary[self.textFormat]
         
     def _get_path(self):
         return os.path.join(os.getcwd(), self.dirpath)
@@ -50,10 +134,8 @@ class IMDBSentimentAnalysis(Dataset):
     def __getitem__(self, idx):
         
         label = self.labels[idx]
-        sample = self._read_file(idx)    
-        
+        sample = self._read_file(idx)
         return sample, label
-       
        
 class MTOPEnglish(Dataset):
     
@@ -104,16 +186,28 @@ class MTOPEnglish(Dataset):
         
         return sample, label
 
-        
+
+
+
 if __name__ == "__main__":
 
-    dataset = IMDBSentimentAnalysis()
-    # dataset = MTOPEnglish()
+    dataset = IMDBSentimentAnalysisDatasetCreator(train=True)
     
     dataloader = DataLoader(dataset, batch_size=1)
-    for sample, label in tqdm(dataloader, desc="Reading train samples."):
-        print(sample)
-        print(label)
+    for sample, label in tqdm(dataloader, desc="Reading train samples"):
+        # print(sample)
+        # print(label)
+        pass
+    print(dataset.nbCreated)
 
+
+    dataset = IMDBSentimentAnalysisDatasetCreator(train=False)
+    
+    dataloader = DataLoader(dataset, batch_size=1)
+    for sample, label in tqdm(dataloader, desc="Reading train samples"):
+        # print(sample)
+        # print(label)
+        pass
+    print(dataset.nbCreated)
 
     print("All samples read.")

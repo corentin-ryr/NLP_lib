@@ -13,7 +13,7 @@ from tqdm import tqdm
 import os
 from datetime import datetime
 
-from Mixers.Helper.helper import InteractivePlot, generate_dashboard
+from Mixers.Helper.helper import InteractivePlot, generate_dashboard, collate_callable
 from Mixers.Trainers import hamiltorch
 
 from rich.align import Align
@@ -28,7 +28,6 @@ class Trainer():
         self.model = model.to(device)
         self.device = device
         self.save_path = save_path
-        
         if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
         if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
         if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)
@@ -59,6 +58,9 @@ class ClassificationTrainer(Trainer):
         self.nb_epochs = nb_epochs
         if self.display_loss: self.interactivePlot = InteractivePlot(1)
 
+        if self.model.textFormat == "tokenized" or self.model.textFormat == "3grammed":
+            self.trainloader.collate_fn = collate_callable(traindataset.sentenceLength)
+            self.testloader.collate_fn = collate_callable(testdataset.sentenceLength)
 
     def train(self):
         self.console.print(Align("\n\nStarting training", align="center"))
@@ -67,15 +69,13 @@ class ClassificationTrainer(Trainer):
             self.model.train()
 
             running_loss = 0.0
-            train_accuracy = Accuracy()
-            for i, data in tqdm(enumerate(self.trainloader), total=len(self.trainloader), desc=f"Epoch {epoch}"):
-                
-                inputs, labels = data # get the inputs; data is a list of [inputs, labels]
+            train_accuracy = Accuracy().to(self.device)
+            for inputs, labels in tqdm(self.trainloader, total=len(self.trainloader), desc=f"Epoch {epoch}"):
 
                 self.optimizer.zero_grad()
                 outputs = self.model(inputs)
 
-                train_accuracy.update(outputs, labels)
+                train_accuracy.update(outputs, labels.to(self.device))
                 if type(self.criterion) is nn.BCELoss:
                     labels = labels.type(torch.float)
                 loss = self.criterion(outputs, labels.to(self.device))
@@ -95,14 +95,10 @@ class ClassificationTrainer(Trainer):
         
 
     def validate(self, light=False):
-        
         self.model.eval()
-
         for metric in self.metric_set: metric.reset()
-        
-        test_accuracy = Accuracy()
 
-        with Progress(transient=True) as progress:            
+        with Progress(transient=True) as progress:
             for i, data in progress.track(enumerate(self.testloader), total=len(self.testloader) if not light else 5):
                 if light and i == 5: break
                 inputs, labels = data
@@ -110,11 +106,10 @@ class ClassificationTrainer(Trainer):
                 
                 outputs = outputs.detach().cpu()
                 labels = labels.detach()
-
-                test_accuracy.update(outputs, labels)
+                
                 for metric in self.metric_set:
                     metric.update(outputs, labels)
-
+        
         layout = generate_dashboard(self.metric_set)
         self.console.print(Panel(layout, title=f"[green]Validation", border_style="green", height=20))
         
@@ -128,12 +123,12 @@ class ClassificationTrainer(Trainer):
     supportedMetrics = {Accuracy, Recall, Precision}
     def set_validation_metrics(self, metrics_set:set[Metric], num_classes:int):
         self.num_classes = num_classes
-        self.metric_set:list[Metric] = []
+        self.metric_set:set[Metric] = set()
         for metric in metrics_set:
             if metric in ClassificationTrainer.supportedMetrics: 
-                self.metric_set.append(metric(num_classes) if num_classes > 2 else metric())
+                self.metric_set.add(metric(num_classes) if num_classes > 2 else metric())
             if metric in {ConfusionMatrix}:
-                self.metric_set.append(metric(num_classes))
+                self.metric_set.add(metric(num_classes))
             
         return self
     

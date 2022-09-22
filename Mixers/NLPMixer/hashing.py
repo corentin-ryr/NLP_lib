@@ -1,7 +1,6 @@
 import random
 from typing import Callable
 import hashlib
-import numpy as np
 
 class MultiHashing():
 

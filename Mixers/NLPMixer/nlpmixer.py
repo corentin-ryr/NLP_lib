@@ -1,6 +1,8 @@
 from typing import Union
+
 import torch
 import torch.nn as nn
+
 from nltk.tokenize import word_tokenize
 from nltk import ngrams
 
@@ -13,7 +15,7 @@ import numpy as np
 
 class ProjectiveLayer(nn.Module):
     
-    def __init__(self, N:int, S:int, M:int, W:int) -> None:
+    def __init__(self, N:int, S:int, M:int, W:int, textFormat="raw") -> None:
         """_summary_
 
         Args:
@@ -21,6 +23,8 @@ class ProjectiveLayer(nn.Module):
         """
         super().__init__()
         
+        self.textFormat = textFormat
+
         self.nbHashFunc = N
         self.sentenceLength = S
         self.bloomLength = M
@@ -32,29 +36,33 @@ class ProjectiveLayer(nn.Module):
                 
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
-        for idxSentence, sentence in enumerate(batchSentences):            
-            for idx, word in enumerate(word_tokenize(sentence)[:self.sentenceLength]):
+        for idxSentence, sentence in enumerate(batchSentences):
+            if self.textFormat == "raw":
+                sentence = word_tokenize(sentence)[:self.sentenceLength]
+
+            for idx, word in enumerate(sentence):
+                if self.textFormat == "raw" or self.textFormat == "tokenized":
+                    wordGrammed = ["".join(i) for i in ngrams(word, 3)]
+                    if not wordGrammed: wordGrammed = [word]
+                    word = wordGrammed
+      
                 sentencesMinHashes[idxSentence, idx] = np.min(np.array(
-                    [self.hashFunc.compute_hashes("".join(i)) for i in ngrams(word, 3, pad_right=True, right_pad_symbol="")]
+                    [self.hashFunc.compute_hashes(gram) for gram in word]
                     ), axis=0)
-        
+            
         floatCounter = self.counting_bloom_filter(sentencesMinHashes)
-        
         batchmovingWindowFloatCounter = self.moving_window(floatCounter)
-        
+
         return batchmovingWindowFloatCounter
     
  
     def counting_bloom_filter(self, F:np.ndarray) -> torch.Tensor:
         """_summary_
-
         Args:
             F (list[list[int]]): input token hashes (F). Size: nb words x nb filters
-
         Returns:
             torch.Tensor: Float counting tensor. Size: bloom length x max sentence length
         """
-        
         Fp = np.remainder(F, self.bloomLength)
         CountingBloom = torch.tensor(np.apply_along_axis(lambda x: np.bincount(x, minlength=self.bloomLength), axis=2, arr=Fp))
         return torch.transpose(CountingBloom, 1, 2)
@@ -71,12 +79,12 @@ class ProjectiveLayer(nn.Module):
             movingFloatCounter[:, (i + self.windowSize) * m:(i + self.windowSize + 1) * m, :s - i] = floatCounter[:, :, i:]
         
         return movingFloatCounter
-
+        
         
 class NLP_Mixer(nn.Module):
     
     def __init__(self, nbHashFunc:int=64, sentenceLength:int=100, bloomLength:int=1024, windowSize:int=1, 
-                 bottleneckParam:int=256, mixerTokenDim:int=256, mixerChannelDim:int=256, depth:int=2, nbClasses:int=None, applyPreprocessing:bool=True, device='cpu') -> None:
+                 bottleneckParam:int=256, mixerTokenDim:int=256, mixerChannelDim:int=256, depth:int=2, nbClasses:int=None, applyPreprocessing:bool=True, device='cpu', textFormat:str="raw") -> None:
         super().__init__()
 
         self.nbHashFunc = nbHashFunc
@@ -90,9 +98,10 @@ class NLP_Mixer(nn.Module):
         self.nbClasses = nbClasses if nbClasses else 1
         self.applyPreprocessing = applyPreprocessing
         self.device = device
-        
+        self.textFormat = textFormat
+
         self.projectiveLayer = torch.nn.Sequential(
-            ProjectiveLayer(self.nbHashFunc, self.sentenceLength, self.bloomLength, self.windowSize),
+            ProjectiveLayer(self.nbHashFunc, self.sentenceLength, self.bloomLength, self.windowSize, textFormat),
             Rearrange('b n d -> b d n')
         )
         
@@ -110,7 +119,7 @@ class NLP_Mixer(nn.Module):
         self.mlp_head = nn.Linear(self.bottleneckParam, self.nbClasses)
 
             
-    def forward(self, x:Union[list[str], torch.Tensor]):
+    def forward(self, x:Union[list[str], torch.Tensor]):        
         
         if self.applyPreprocessing:
             x = self.projectiveLayer(x).to(self.device)
@@ -120,7 +129,7 @@ class NLP_Mixer(nn.Module):
         x = self.mixer_blocks(x)
         x = self.layer_norm(x)
         x = torch.mean(x, dim=1)
-        
-        final = torch.softmax(self.mlp_head(x), 1) if self.nbClasses >= 2 else torch.sigmoid(torch.squeeze(self.mlp_head(x)))
-        
+        x = self.mlp_head(x)
+
+        final = torch.softmax(x, 1) if self.nbClasses > 2 else torch.sigmoid(torch.squeeze(x))
         return final
