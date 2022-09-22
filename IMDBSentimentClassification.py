@@ -4,18 +4,15 @@ from Mixers.NLPMixer.nlpmixer import NLP_Mixer
 from Mixers.Trainers.trainerDirector import TrainerDirector
 from Mixers.Helper.helper import get_device
 
-sentenceLength = 200
+sentenceLength = 100
 textFormat = "tokenized"
 
 if __name__ == "__main__":
     useGPU = True
     device = get_device(useGPU)
     
-    
-
-    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength, limit=200)
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength)
     testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat, sentenceLength=sentenceLength)
-
     
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, device=device, textFormat=textFormat)
     

@@ -8,8 +8,6 @@ from nltk import word_tokenize, ngrams
 import json
 from bs4 import BeautifulSoup
 import glob
-import re
-import string
 
 class IMDBSentimentAnalysisDatasetCreator(Dataset):
     
@@ -17,8 +15,8 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
         
         self.dirpath = "data/imdb/" + ("train" if train else "test")
         
-        fileListPos = os.listdir(os.path.join(self._get_path(), "pos"))
-        fileListNeg = os.listdir(os.path.join(self._get_path(), "neg"))
+        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*"))
+        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*"))
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg),
@@ -29,30 +27,20 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
                                       torch.ones((len(fileListPos)), dtype=torch.long) 
                                       ))
         
-        if shuffle: self._shuffle()
-        if limit: self.limit = limit
-        else: self.limit =  float("inf")
+        self.nbCreated = 0
 
-    
-    def _shuffle(self):
-        shuffleIndex = np.arange(len(self.labels))
-        np.random.shuffle(shuffleIndex)
-        
-        self.samples = self.samples[shuffleIndex]
-        self.labels = self.labels[shuffleIndex]
-        
     def _read_file(self, idx):
         filename = self.samples[idx]
         label = "pos" if self.labels[idx] else "neg"
         
         if filename.endswith(".json"):
-            os.remove(os.path.join(self.dirpath, label, filename))
+            os.remove(filename)
             return "Deleted"
 
-        with open(os.path.join(self.dirpath, label, filename), 'r') as file:
+
+        with open(filename, 'r') as file:
             text = "".join(file.readlines())
             text = BeautifulSoup(text, "lxml").text
-            # text = re.sub(r'[()\'\”[\]{}]', '', text)
 
             textTokenized = word_tokenize(text)
             textwordngram = []
@@ -68,8 +56,9 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
                 "3grammed": textwordngram
             }
             
-        with open(os.path.join(self.dirpath, label, filename[:-4] + ".json"), 'w') as file:
+        with open(filename[:-4] + ".json", 'w') as file:
             json.dump(dictionary, file)
+            self.nbCreated += 1
 
         return dictionary["raw"]
         
@@ -77,10 +66,9 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
         return os.path.join(os.getcwd(), self.dirpath)
     
     def __len__(self):
-        return min([len(self.labels), self.limit])
+        return len(self.labels)
     
     def __getitem__(self, idx):
-        
         label = self.labels[idx]
         sample = self._read_file(idx)
         
@@ -102,6 +90,7 @@ class IMDBSentimentAnalysis(Dataset):
         fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.json"))
         fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.json"))
 
+        print(len(fileListNeg) + len(fileListPos))
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg), 
@@ -207,18 +196,21 @@ if __name__ == "__main__":
 
     dataset = IMDBSentimentAnalysisDatasetCreator(train=True)
     
-    dataloader = DataLoader(dataset, batch_size=5)
+    dataloader = DataLoader(dataset, batch_size=1)
     for sample, label in tqdm(dataloader, desc="Reading train samples"):
         # print(sample)
         # print(label)
         pass
+    print(dataset.nbCreated)
+
 
     dataset = IMDBSentimentAnalysisDatasetCreator(train=False)
     
-    dataloader = DataLoader(dataset, batch_size=5)
+    dataloader = DataLoader(dataset, batch_size=1)
     for sample, label in tqdm(dataloader, desc="Reading train samples"):
         # print(sample)
         # print(label)
         pass
+    print(dataset.nbCreated)
 
     print("All samples read.")

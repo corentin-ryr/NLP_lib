@@ -33,9 +33,9 @@ class Trainer():
         self.device = device
         self.save_path = save_path
 
-        if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=2)
-        if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=2)
-        if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=2)
+        if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)
         self.batch_size = batch_size
         
         self.console = Console()
@@ -70,15 +70,6 @@ class ClassificationTrainer(Trainer):
     def train(self):
         self.console.print(Align("\n\nStarting training", align="center"))
 
-        # projection = self.model.projectiveLayer
-        # proj1 = projection(["Bonjour"])
-        # proj2 = projection(["Hello"])
-
-        # print(torch.sum(torch.abs(proj1 - proj2)))
-        # # print(projection(["Bonjour"])[0, 0:30, 0:30])
-
-        # raise Exception
-
         for epoch in range(self.nb_epochs):  # loop over the dataset multiple times
             self.model.train()
 
@@ -100,7 +91,7 @@ class ClassificationTrainer(Trainer):
             self.console.print(f'Average loss at epoch {epoch}: {running_loss / len(self.trainloader):.3f}')
             running_loss = 0.0
             
-            # if epoch % 5 == 4: self.validate(light=True)
+            if epoch % 5 == 4: self.validate(light=True)
         
         self.console.print(Align("\n\n[bold green]Finished Training", align="center"))
         
@@ -137,7 +128,7 @@ class ClassificationTrainer(Trainer):
         self.metric_set:set[Metric] = set()
         for metric in metrics_set:
             if metric in ClassificationTrainer.supportedMetrics: 
-                self.metric_set.add(metric(num_classes if num_classes > 2 else 1))
+                self.metric_set.add(metric(num_classes) if num_classes > 2 else metric())
             if metric in {ConfusionMatrix}:
                 self.metric_set.add(metric(num_classes))
             
