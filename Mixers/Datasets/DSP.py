@@ -9,6 +9,8 @@ import json
 from bs4 import BeautifulSoup
 import glob
 
+from Mixers.Helper.helper import pad_list
+
 class IMDBSentimentAnalysisDatasetCreator(Dataset):
     
     def __init__(self, train=True, shuffle=True, limit=None) -> None:
@@ -123,7 +125,9 @@ class IMDBSentimentAnalysis(Dataset):
        
         if self.keepInMemory: self.fullSamples[idx] = dictionary[self.textFormat]
 
-        return dictionary[self.textFormat]
+        if self.textFormat == "raw": return dictionary[self.textFormat]
+
+        return pad_list(dictionary[self.textFormat], self.sentenceLength)
         
     def _get_path(self):
         return os.path.join(os.getcwd(), self.dirpath)

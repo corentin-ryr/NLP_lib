@@ -13,7 +13,7 @@ if __name__ == "__main__":
     traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength)
     testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat, sentenceLength=sentenceLength)
     
-    model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, device=device, textFormat=textFormat)
+    model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, device=device)
     
     trainer = TrainerDirector.get_binary_trainer(model=model, traindataset=traindataset, testdataset=testdataset, batch_size=256, device=device, nb_epochs=40) 
     

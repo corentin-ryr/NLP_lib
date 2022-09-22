@@ -95,6 +95,10 @@ def get_device(useGPU):
 
     return torch.device("cpu")
 
+def pad_list(l, length):
+    l = l[:length]
+    l += [""] * (length - len(l))
+    return l
 
 class collate_callable():
     def __init__(self, sentenceLength:int=200) -> None:
@@ -102,12 +106,7 @@ class collate_callable():
 
     def __call__(self, data):
         data, label = list(zip(*data))
-        data = list(map(lambda x: self.pad_list(x), data))
         label = torch.stack(label)
 
         return data, label
 
-    def pad_list(self, l):
-        l = l[:self.sentenceLength]
-        l += [[""]] * (self.sentenceLength - len(l))
-        return l

@@ -15,7 +15,7 @@ import numpy as np
 
 class ProjectiveLayer(nn.Module):
     
-    def __init__(self, N:int, S:int, M:int, W:int, textFormat="raw") -> None:
+    def __init__(self, N:int, S:int, M:int, W:int) -> None:
         """_summary_
 
         Args:
@@ -23,7 +23,6 @@ class ProjectiveLayer(nn.Module):
         """
         super().__init__()
         
-        self.textFormat = textFormat
 
         self.nbHashFunc = N
         self.sentenceLength = S
@@ -37,15 +36,15 @@ class ProjectiveLayer(nn.Module):
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
         for idxSentence, sentence in enumerate(batchSentences):
-            if self.textFormat == "raw":
+            if type(sentence) == str:
                 sentence = word_tokenize(sentence)[:self.sentenceLength]
 
             for idx, word in enumerate(sentence):
-                if self.textFormat == "raw" or self.textFormat == "tokenized":
+                if type(word) == str:
                     wordGrammed = ["".join(i) for i in ngrams(word, 3)]
                     if not wordGrammed: wordGrammed = [word]
                     word = wordGrammed
-      
+
                 sentencesMinHashes[idxSentence, idx] = np.min(np.array(
                     [self.hashFunc.compute_hashes(gram) for gram in word]
                     ), axis=0)
@@ -84,7 +83,7 @@ class ProjectiveLayer(nn.Module):
 class NLP_Mixer(nn.Module):
     
     def __init__(self, nbHashFunc:int=64, sentenceLength:int=100, bloomLength:int=1024, windowSize:int=1, 
-                 bottleneckParam:int=256, mixerTokenDim:int=256, mixerChannelDim:int=256, depth:int=2, nbClasses:int=None, applyPreprocessing:bool=True, device='cpu', textFormat:str="raw") -> None:
+                 bottleneckParam:int=256, mixerTokenDim:int=256, mixerChannelDim:int=256, depth:int=2, nbClasses:int=None, applyPreprocessing:bool=True, device='cpu') -> None:
         super().__init__()
 
         self.nbHashFunc = nbHashFunc
@@ -98,10 +97,9 @@ class NLP_Mixer(nn.Module):
         self.nbClasses = nbClasses if nbClasses else 1
         self.applyPreprocessing = applyPreprocessing
         self.device = device
-        self.textFormat = textFormat
 
         self.projectiveLayer = torch.nn.Sequential(
-            ProjectiveLayer(self.nbHashFunc, self.sentenceLength, self.bloomLength, self.windowSize, textFormat),
+            ProjectiveLayer(self.nbHashFunc, self.sentenceLength, self.bloomLength, self.windowSize),
             Rearrange('b n d -> b d n')
         )
         

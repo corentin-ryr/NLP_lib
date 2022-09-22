@@ -58,9 +58,8 @@ class ClassificationTrainer(Trainer):
         self.nb_epochs = nb_epochs
         if self.display_loss: self.interactivePlot = InteractivePlot(1)
 
-        if self.model.textFormat == "tokenized" or self.model.textFormat == "3grammed":
-            self.trainloader.collate_fn = collate_callable(traindataset.sentenceLength)
-            self.testloader.collate_fn = collate_callable(testdataset.sentenceLength)
+        self.trainloader.collate_fn = collate_callable(traindataset.sentenceLength)
+        self.testloader.collate_fn = collate_callable(testdataset.sentenceLength)
 
     def train(self):
         self.console.print(Align("\n\nStarting training", align="center"))
