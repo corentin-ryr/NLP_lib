@@ -1316,7 +1316,7 @@ def define_full_batch_model_log_prob(model, model_loss, train_loader, params_fla
 
         for data, label in tqdm(train_loader):
             data = data.to(device)
-            label = label.to(device)
+            label = label.type(torch.float).to(device)
             output = fmodel(data, params=params_unflattened)
 
             if model_loss is 'binary_class_linear_output':

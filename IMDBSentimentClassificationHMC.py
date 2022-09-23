@@ -1,17 +1,22 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
 from Mixers.NLPMixer.nlpmixer import NLP_Mixer
 from Mixers.Trainers.trainerDirector import TrainerDirector
+from Mixers.Helper.helper import get_device
 
 import torch
 
+
+sentenceLength = 100
+textFormat = "raw"
+
 if __name__ == "__main__":
-    useGPU = True
-    
-    traindataset = IMDBSentimentAnalysis(limit=1000)
-    testdataset = IMDBSentimentAnalysis(train=False)
+    useGPU = False
+    device = get_device(useGPU)
+
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength)
+    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat, sentenceLength=sentenceLength)
+
     model = NLP_Mixer(sentenceLength=200, depth=2, applyPreprocessing=False)
-    
-    device = torch.device("cuda:0" if torch.cuda.is_available() and useGPU else "cpu")
     
     trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, device=device) 
     

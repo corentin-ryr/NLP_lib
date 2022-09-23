@@ -101,12 +101,16 @@ def pad_list(l, length):
     return l
 
 class collate_callable():
-    def __init__(self, sentenceLength:int=200) -> None:
+    def __init__(self, sentenceLength:int=200, preprocessor=None) -> None:
         self.sentenceLength = sentenceLength
+
+        self.preprocessor = preprocessor
 
     def __call__(self, data):
         data, label = list(zip(*data))
         label = torch.stack(label)
+
+        if self.preprocessor: data = self.preprocessor(data)
 
         return data, label
 

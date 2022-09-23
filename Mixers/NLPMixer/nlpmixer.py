@@ -22,7 +22,6 @@ class ProjectiveLayer(nn.Module):
             N (int): Number of hash functions
         """
         super().__init__()
-        
 
         self.nbHashFunc = N
         self.sentenceLength = S

@@ -149,12 +149,13 @@ class ClassificationTrainerHMC(Trainer):
         
         self.params_hmc_f = []
 
+        self.preprocessor = self.model.projectiveLayer
+        self.trainloader.collate_fn = collate_callable(traindataset.sentenceLength, self.preprocessor)
+        self.testloader.collate_fn = collate_callable(testdataset.sentenceLength, self.preprocessor)
+
     def train(self):
         
         self.console.print(Align("\n\nStarting training", align="center"))
-
-        self.preprocessor = self.model.projectiveLayer
-        self.trainloader.collate_fn = self.collate_function
         
         params_init = hamiltorch.util.flatten(self.model).to(self.device).clone()
         inv_mass = torch.ones(params_init.shape) / self.mass # Diagonal of inverse mass matrix
@@ -191,15 +192,7 @@ class ClassificationTrainerHMC(Trainer):
         
         layout = generate_dashboard(self.metric_set)
         self.console.print(Panel(layout, title=f"[green]Validation", border_style="green", height=20))
-        
-    # Helper functions =============================================================================================================
-    
-    def collate_function(self, data):
-        samples, labels = zip(*data)
-        samples = self.preprocessor(samples)
-        labels = torch.tensor(labels, dtype=torch.float).detach()
-   
-        return samples, labels
+
     
     # Building functions =========================================================================================================== 
     def set_loss(self, loss:_Loss) -> ClassificationTrainer:
