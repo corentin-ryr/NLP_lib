@@ -101,9 +101,7 @@ def pad_list(l, length):
     return l
 
 class collate_callable():
-    def __init__(self, sentenceLength:int=200, preprocessor=None) -> None:
-        self.sentenceLength = sentenceLength
-
+    def __init__(self,  preprocessor=None) -> None:
         self.preprocessor = preprocessor
 
     def __call__(self, data):

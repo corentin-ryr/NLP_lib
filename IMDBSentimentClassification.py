@@ -1,21 +1,25 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
-from Mixers.NLPMixer.nlpmixer import NLP_Mixer
+from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer, ProjectiveLayer
 from Mixers.Trainers.trainerDirector import TrainerDirector
-from Mixers.Helper.helper import get_device
+from Mixers.Helper.helper import collate_callable, get_device
 
 sentenceLength = 100
 textFormat = "3grammed"
+useGPU = True
 
 if __name__ == "__main__":
-    useGPU = True
     device = get_device(useGPU)
+
+    preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
     
-    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength)
-    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat, sentenceLength=sentenceLength)
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat)
+    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat)
     
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, device=device)
     
-    trainer = TrainerDirector.get_binary_trainer(model=model, traindataset=traindataset, testdataset=testdataset, batch_size=256, device=device, nb_epochs=40) 
+    trainer = TrainerDirector.get_binary_trainer(model=model, traindataset=traindataset, testdataset=testdataset, 
+                                                batch_size=256, device=device, nb_epochs=40,
+                                                collate_fn=collate_callable(preprocessor)) 
     
     trainer.summarize_model()
     

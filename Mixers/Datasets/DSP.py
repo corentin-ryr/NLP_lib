@@ -9,11 +9,11 @@ import json
 from bs4 import BeautifulSoup
 import glob
 
-from Mixers.Helper.helper import pad_list
+from Mixers.Models.toyModel import ToyModel
 
 class IMDBSentimentAnalysisDatasetCreator(Dataset):
     
-    def __init__(self, train=True, shuffle=True, limit=None) -> None:
+    def __init__(self, train=True) -> None:
         
         self.dirpath = "data/imdb/" + ("train" if train else "test")
         
@@ -77,14 +77,13 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
 class IMDBSentimentAnalysis(Dataset):
     kinds = {"raw", "tokenized", "3grammed"}
 
-    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", sentenceLength:int=200, keepInMemory:bool=False) -> None:
+    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", keepInMemory:bool=False) -> None:
         
         self.dirpath = "data/imdb/" + ("train" if train else "test")
        
         if textFormat not in IMDBSentimentAnalysis.kinds: raise ValueError(f"Kind must be in {IMDBSentimentAnalysis.kinds}")
         self.textFormat = textFormat
         
-        self.sentenceLength = sentenceLength
         self.keepInMemory = keepInMemory
 
         fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.json"))
@@ -127,7 +126,7 @@ class IMDBSentimentAnalysis(Dataset):
 
         if self.textFormat == "raw": return dictionary[self.textFormat]
 
-        return pad_list(dictionary[self.textFormat], self.sentenceLength)
+        return dictionary[self.textFormat]
         
     def _get_path(self):
         return os.path.join(os.getcwd(), self.dirpath)
@@ -190,7 +189,38 @@ class MTOPEnglish(Dataset):
         
         return sample, label
 
+class ToyDataset(Dataset):
 
+    model = None
+
+    def __init__(self, train:bool=True) -> None:
+        super().__init__()
+        self.train = train
+
+        x:np.ndarray = np.zeros(120)
+        x[:40] = np.random.uniform(-10, -6, 40)
+        x[40:80] = np.random.uniform(6, 10, 40)
+        x[80:] = np.random.uniform(14, 18, 40)
+        self.x = torch.Tensor([x,x*x]).T
+        
+        x_truth = np.linspace(-15,25, 8000)
+        self.x_truth = torch.Tensor([x_truth, x_truth*x_truth]).T
+        
+        
+        if not ToyDataset.model: ToyDataset.model = ToyModel()
+
+        self.y = ToyDataset.model(self.x).detach().numpy() + np.random.normal(0, 0.02, size=(120,1))
+        self.y_truth = ToyDataset.model(self.x_truth).detach().numpy()
+
+
+    def __getitem__(self, index):
+        if self.train:
+            return self.x[index], self.y[index]
+        else:
+            return self.x_truth[index], self.y_truth[index]
+
+    def __len__(self):
+        return len(self.x) if self.train else len(self.x_truth)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from typing import Union
 import torch
 import torch.nn as nn
 from enum import Enum
-from tqdm import tqdm
+from rich.progress import Progress, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
 from numpy import pi
 from . import util
 from torch.utils.data.dataloader import DataLoader
@@ -86,7 +86,7 @@ def fisher(params, log_prob_func=None, jitter=None, normalizing_const=1., softab
 
     """
 
-    log_prob = log_prob_func(params)
+    log_prob = log_prob_func(params, return_hessian=True, return_jacobian=True)
     if util.has_nan_or_inf(log_prob):
         print('Invalid log_prob: {}, params: {}'.format(log_prob, params))
         raise util.LogProbError()
@@ -260,35 +260,39 @@ def leapfrog(params, momentum, log_prob_func, steps=10, step_size=0.1, jitter=0.
     if sampler == Sampler.HMC and integrator != Integrator.SPLITTING and integrator != Integrator.SPLITTING_RAND and integrator != Integrator.SPLITTING_KMID:
         def params_grad(p):
             p = p.detach().requires_grad_()
-            log_prob = log_prob_func(p)
-            # log_prob.backward()
-            p = collect_gradients(log_prob, p)
-            # print(p.grad.std())
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            return p.grad
+            log_prob, grad = log_prob_func(p, return_grad=True)
+            
+            # # log_prob.backward()
+            # p = collect_gradients(log_prob, p)
+            # # print(p.grad.std())
+            # if torch.cuda.is_available():
+            #     torch.cuda.empty_cache()
+    
+            return grad
+        
         ret_params = []
         ret_momenta = []
         momentum += 0.5 * step_size * params_grad(params)
-        for n in range(steps):
-            if inv_mass is None:
-                params = params + step_size * momentum #/normalizing_const
-            else:
-                #Assum G is diag here so 1/Mass = G inverse
-                if type(inv_mass) is list:
-                    i = 0
-                    for block in inv_mass:
-                        it = block[0].shape[0]
-                        params[i:it+i] = params[i:it+i] + step_size * torch.matmul(block,momentum[i:it+i].view(-1,1)).view(-1) #/normalizing_const
-                        i += it
-                elif len(inv_mass.shape) == 2:
-                    params = params + step_size * torch.matmul(inv_mass,momentum.view(-1,1)).view(-1) #/normalizing_const
+        with Progress(transient=True) as progress:
+            for n in progress.track(range(steps), description="Leapfrog"):
+                if inv_mass is None:
+                    params = params + step_size * momentum #/normalizing_const
                 else:
-                    params = params + step_size * inv_mass * momentum #/normalizing_const
-            p_grad = params_grad(params)
-            momentum += step_size * p_grad
-            ret_params.append(params.clone())
-            ret_momenta.append(momentum.clone())
+                    #Assum G is diag here so 1/Mass = G inverse
+                    if type(inv_mass) is list:
+                        i = 0
+                        for block in inv_mass:
+                            it = block[0].shape[0]
+                            params[i:it+i] = params[i:it+i] + step_size * torch.matmul(block,momentum[i:it+i].view(-1,1)).view(-1) #/normalizing_const
+                            i += it
+                    elif len(inv_mass.shape) == 2:
+                        params = params + step_size * torch.matmul(inv_mass,momentum.view(-1,1)).view(-1) #/normalizing_const
+                    else:
+                        params = params + step_size * inv_mass * momentum #/normalizing_const
+                p_grad = params_grad(params)
+                momentum += step_size * p_grad
+                ret_params.append(params.clone())
+                ret_momenta.append(momentum.clone())
         # only need last for Hamiltoninian check (see p.14) https://arxiv.org/pdf/1206.1901.pdf
         ret_momenta[-1] = ret_momenta[-1] - 0.5 * step_size * p_grad.clone()
             # import pdb; pdb.set_trace()
@@ -766,7 +770,6 @@ def hamiltonian(params, momentum, log_prob_func, jitter=0.01, normalizing_const=
     if sampler == Sampler.HMC:
         if type(log_prob_func) is not list:
             log_prob = log_prob_func(params)
-
             if util.has_nan_or_inf(log_prob):
                 print('Invalid log_prob: {}, params: {}'.format(log_prob, params))
                 raise util.LogProbError()
@@ -1057,8 +1060,8 @@ def sample(log_prob_func, params_init, num_samples=10, num_steps_per_sample=10, 
             del momentum, leapfrog_params, leapfrog_momenta, ham, new_ham
             torch.cuda.empty_cache()
 
-                # var_names = ['momentum', 'leapfrog_params', 'leapfrog_momenta', 'ham', 'new_ham']
-                # [util.gpu_check_delete(var, locals()) for var in var_names]
+            # var_names = ['momentum', 'leapfrog_params', 'leapfrog_momenta', 'ham', 'new_ham']
+            # [util.gpu_check_delete(var, locals()) for var in var_names]
             # import pdb; pdb.set_trace()
 
 
@@ -1292,7 +1295,7 @@ def define_full_batch_model_log_prob(model, model_loss, train_loader, params_fla
     for tau in tau_list:
         dist_list.append(torch.distributions.Normal(torch.zeros_like(tau_list[0]), tau**-0.5))
 
-    def log_prob_func(params):
+    def log_prob_func(params, return_grad:bool=False, return_hessian:bool=False, return_jacobian:bool=False):
         # model.zero_grad()
         # params is flat
         # Below we update the network weights to be params
@@ -1311,41 +1314,56 @@ def define_full_batch_model_log_prob(model, model_loss, train_loader, params_fla
             return l_prior/prior_scale
 
         total_loss = 0
+        total_grad = 0
         
-        print("Log func called")
-
-        for data, label in tqdm(train_loader):
+        
+        for data, label in train_loader:
             data = data.to(device)
             label = label.type(torch.float).to(device)
+
+            print(data.shape)
+
             output = fmodel(data, params=params_unflattened)
 
-            if model_loss is 'binary_class_linear_output':
+            if model_loss == 'binary_class_linear_output':
                 crit = nn.BCEWithLogitsLoss(reduction='sum')
-                total_loss += - tau_out *(crit(output, label))
-            elif model_loss is 'multi_class_linear_output':
+                ll = - tau_out *(crit(output, label))
+            elif model_loss == 'multi_class_linear_output':
         #         crit = nn.MSELoss(reduction='mean')
                 crit = nn.CrossEntropyLoss(reduction='sum')
         #         crit = nn.BCEWithLogitsLoss(reduction='sum')
-                total_loss += - tau_out *(crit(output, label.long().view(-1)))
+                ll = - tau_out *(crit(output, label.long().view(-1)))
                 # ll = - tau_out *(torch.nn.functional.nll_loss(output, y.long().view(-1)))
-            elif model_loss is 'multi_class_log_softmax_output':
-                total_loss += - tau_out *(torch.nn.functional.nll_loss(output, label.long().view(-1)))
+            elif model_loss == 'multi_class_log_softmax_output':
+                ll = - tau_out *(torch.nn.functional.nll_loss(output, label.long().view(-1)))
 
-            elif model_loss is 'regression':
+            elif model_loss == 'regression':
                 # crit = nn.MSELoss(reduction='sum')
-                total_loss += - 0.5 * tau_out * ((output - label) ** 2).sum(0)
+                ll = - 0.5 * tau_out * ((output - label) ** 2)
 
             elif callable(model_loss):
-                # Assume defined custom log-likelihood.
-                total_loss += - model_loss(output, label).sum(0)
+                # Assume defined custom log-likelihood.    
+                ll = - model_loss(output, label)
             else:
                 raise NotImplementedError()
 
+            total_loss += ll.detach()
 
+            # Compute gradient
+            if return_grad: total_grad += torch.autograd.grad(ll + l_prior/prior_scale, params, retain_graph=True)[0].detach()
+
+        return_values = [(total_loss + l_prior/prior_scale).item()]
         if predict:
-            return (total_loss + l_prior/prior_scale), output
-        else:
-            return (total_loss + l_prior/prior_scale)
+            return_values.append(output)
+        if return_grad:
+            return_values.append(total_grad)
+        if return_hessian:
+            raise NotImplemented("Hessian not implemented yet")
+        if return_jacobian:
+            raise NotImplemented("Jacobian not implemented yet")
+
+        if len(return_values) == 1: return return_values[0]
+        return tuple(return_values)
 
     return log_prob_func
 

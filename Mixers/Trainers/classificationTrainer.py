@@ -13,7 +13,7 @@ from tqdm import tqdm
 import os
 from datetime import datetime
 
-from Mixers.Helper.helper import InteractivePlot, generate_dashboard, collate_callable
+from Mixers.Helper.helper import InteractivePlot, generate_dashboard
 from Mixers.Trainers import hamiltorch
 
 from rich.align import Align
@@ -24,13 +24,20 @@ from rich.console import Console
 
 
 class Trainer():
-    def __init__(self, model:nn.Module, device, save_path:str, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256) -> None:
+    def __init__(self, model:nn.Module, device, save_path:str, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
         self.model = model.to(device)
         self.device = device
         self.save_path = save_path
-        if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
-        if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
-        if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)
+        if traindataset: 
+            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            if collate_fn: self.trainloader.collate_fn = collate_fn
+        if testdataset: 
+            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            if collate_fn: self.testloader.collate_fn = collate_fn
+        if evaldataset: 
+            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            if collate_fn: self.evalloader.collate_fn = collate_fn
+
         self.batch_size = batch_size
         
         self.console = Console()
@@ -51,15 +58,13 @@ class Trainer():
 class ClassificationTrainer(Trainer):
 
     def __init__(self, model:nn.Module, display_loss:bool=False, nb_epochs:int=20, device='cpu', save_path:str="saves/", 
-                 traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256) -> None:
-        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, batch_size=batch_size)
+                 traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
+        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, batch_size=batch_size, collate_fn=collate_fn)
         
         self.display_loss = display_loss
         self.nb_epochs = nb_epochs
         if self.display_loss: self.interactivePlot = InteractivePlot(1)
 
-        self.trainloader.collate_fn = collate_callable(traindataset.sentenceLength)
-        self.testloader.collate_fn = collate_callable(testdataset.sentenceLength)
 
     def train(self):
         self.console.print(Align("\n\nStarting training", align="center"))
@@ -72,7 +77,7 @@ class ClassificationTrainer(Trainer):
             for inputs, labels in tqdm(self.trainloader, total=len(self.trainloader), desc=f"Epoch {epoch}"):
 
                 self.optimizer.zero_grad()
-                outputs = self.model(inputs)
+                outputs = self.model(inputs.to(self.device))
 
                 train_accuracy.update(outputs, labels.to(self.device))
                 if type(self.criterion) is nn.BCELoss:
@@ -101,7 +106,7 @@ class ClassificationTrainer(Trainer):
             for i, data in progress.track(enumerate(self.testloader), total=len(self.testloader) if not light else 5):
                 if light and i == 5: break
                 inputs, labels = data
-                outputs = self.model(inputs)
+                outputs = self.model(inputs.to(self.device))
                 
                 outputs = outputs.detach().cpu()
                 labels = labels.detach()
@@ -135,11 +140,11 @@ class ClassificationTrainer(Trainer):
 class ClassificationTrainerHMC(Trainer):
 
     def __init__(self, model:nn.Module, device='cpu', save_path:str="saves/",
-                 traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256) -> None:
-        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, batch_size=batch_size)
+                 traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
+        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, batch_size=batch_size, collate_fn=collate_fn)
         
         self.step_size = 0.0005
-        self.num_samples = 100
+        self.num_samples = 2 #100
         self.L = 30 # Remember, this is the trajectory length
         self.burn = -1
         self.store_on_GPU = False # This tells sampler whether to store all samples on the GPU
@@ -149,9 +154,6 @@ class ClassificationTrainerHMC(Trainer):
         
         self.params_hmc_f = []
 
-        self.preprocessor = self.model.projectiveLayer
-        self.trainloader.collate_fn = collate_callable(traindataset.sentenceLength, self.preprocessor)
-        self.testloader.collate_fn = collate_callable(testdataset.sentenceLength, self.preprocessor)
 
     def train(self):
         
@@ -163,7 +165,6 @@ class ClassificationTrainerHMC(Trainer):
         integrator = hamiltorch.Integrator.EXPLICIT
         sampler = hamiltorch.Sampler.HMC # We are doing simple HMC with a standard leapfrog
 
-        
         self.params_hmc_f = hamiltorch.sample_full_batch_model(self.model, self.trainloader, params_init=params_init,
                                             model_loss=self.criterion, num_samples=self.num_samples,
                                             burn = self.burn, inv_mass=inv_mass.to(self.device), step_size=self.step_size,
@@ -175,11 +176,10 @@ class ClassificationTrainerHMC(Trainer):
 
     def validate(self, light=False):
         
-        with Progress(transient=True) as progress:            
+        with Progress(transient=True) as progress:
             for i, data in progress.track(enumerate(self.testloader), total=len(self.testloader) if not light else 5):
                 if light and i == 5: break
                 inputs, labels = data
-                inputs = self.preprocessor(inputs)
                 
                 preds = hamiltorch.inference_model(self.model, self.params_hmc_f, inputs)
                 outputs = torch.mean(preds, dim=0)

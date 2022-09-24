@@ -1,9 +1,8 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
-from Mixers.NLPMixer.nlpmixer import NLP_Mixer
+from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer, ProjectiveLayer
 from Mixers.Trainers.trainerDirector import TrainerDirector
-from Mixers.Helper.helper import get_device
+from Mixers.Helper.helper import collate_callable, get_device
 
-import torch
 
 
 sentenceLength = 100
@@ -13,12 +12,17 @@ if __name__ == "__main__":
     useGPU = False
     device = get_device(useGPU)
 
-    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength)
+    preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
+
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength, limit=10)
     testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat, sentenceLength=sentenceLength)
 
-    model = NLP_Mixer(sentenceLength=200, depth=2, applyPreprocessing=False)
+    model = NLP_Mixer(sentenceLength=200, depth=2)
     
-    trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, device=device) 
+    trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, 
+                                            device=device, batch_size=256, 
+                                            collate_fn=collate_callable(traindataset.sentenceLength, preprocessor)
+                                            ) 
     
     trainer.summarize_model()
     
