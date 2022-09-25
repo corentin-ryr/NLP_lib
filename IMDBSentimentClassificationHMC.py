@@ -7,22 +7,20 @@ from Mixers.Helper.helper import collate_callable, get_device
 
 sentenceLength = 100
 textFormat = "raw"
+useGPU = False
 
 if __name__ == "__main__":
-    useGPU = False
     device = get_device(useGPU)
 
     preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
 
-    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, sentenceLength=sentenceLength, limit=10)
-    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat, sentenceLength=sentenceLength)
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, limit=10)
+    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat)
 
-    model = NLP_Mixer(sentenceLength=200, depth=2)
+    model = NLP_Mixer(sentenceLength=sentenceLength, depth=2)
     
     trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, 
-                                            device=device, batch_size=256, 
-                                            collate_fn=collate_callable(traindataset.sentenceLength, preprocessor)
-                                            ) 
+                                            device=device, batch_size=256, collate_fn=collate_callable(preprocessor)) 
     
     trainer.summarize_model()
     

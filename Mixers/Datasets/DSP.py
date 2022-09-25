@@ -197,14 +197,14 @@ class ToyDataset(Dataset):
         super().__init__()
         self.train = train
 
-        x:np.ndarray = np.zeros(120)
+        x = np.zeros(120)
         x[:40] = np.random.uniform(-10, -6, 40)
         x[40:80] = np.random.uniform(6, 10, 40)
         x[80:] = np.random.uniform(14, 18, 40)
-        self.x = torch.Tensor([x,x*x]).T
+        self.x = torch.Tensor(np.array([x,x*x])).T
         
         x_truth = np.linspace(-15,25, 8000)
-        self.x_truth = torch.Tensor([x_truth, x_truth*x_truth]).T
+        self.x_truth = torch.Tensor(np.array([x_truth, x_truth*x_truth])).T
         
         
         if not ToyDataset.model: ToyDataset.model = ToyModel()
