@@ -208,6 +208,7 @@ class ToyDataset(Dataset):
         
         
         if not ToyDataset.model: ToyDataset.model = ToyModel()
+        ToyDataset.model.eval()
 
         self.y = ToyDataset.model(self.x).detach().numpy() + np.random.normal(0, 0.02, size=(120,1))
         self.y_truth = ToyDataset.model(self.x_truth).detach().numpy()

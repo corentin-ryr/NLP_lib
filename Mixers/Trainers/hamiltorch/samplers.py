@@ -1153,19 +1153,19 @@ def define_model_log_prob(model, model_loss, x, y, params_flattened_list, params
 
         output = fmodel(x_device, params=params_unflattened)
 
-        if model_loss is 'binary_class_linear_output':
+        if model_loss == 'binary_class_linear_output':
             crit = nn.BCEWithLogitsLoss(reduction='sum')
             ll = - tau_out *(crit(output, y_device))
-        elif model_loss is 'multi_class_linear_output':
+        elif model_loss == 'multi_class_linear_output':
     #         crit = nn.MSELoss(reduction='mean')
             crit = nn.CrossEntropyLoss(reduction='sum')
     #         crit = nn.BCEWithLogitsLoss(reduction='sum')
             ll = - tau_out *(crit(output, y_device.long().view(-1)))
             # ll = - tau_out *(torch.nn.functional.nll_loss(output, y.long().view(-1)))
-        elif model_loss is 'multi_class_log_softmax_output':
+        elif model_loss == 'multi_class_log_softmax_output':
             ll = - tau_out *(torch.nn.functional.nll_loss(output, y_device.long().view(-1)))
 
-        elif model_loss is 'regression':
+        elif model_loss == 'regression':
             # crit = nn.MSELoss(reduction='sum')
             ll = - 0.5 * tau_out * ((output - y_device) ** 2).sum(0)#sum(0)
 
@@ -1291,9 +1291,9 @@ def define_full_batch_model_log_prob(model, model_loss, train_loader, params_fla
 
     """
     fmodel = util.make_functional(model)
-    dist_list = []
+    dist_list:list[torch.distributions.Normal] = []
     for tau in tau_list:
-        dist_list.append(torch.distributions.Normal(torch.zeros_like(tau_list[0]), tau**-0.5))
+        dist_list.append(torch.distributions.Normal(torch.zeros_like(tau_list[0]), 0.1)) #  tau**-0.5
 
     def log_prob_func(params, return_grad:bool=False, return_hessian:bool=False, return_jacobian:bool=False):
         # model.zero_grad()
@@ -1325,36 +1325,37 @@ def define_full_batch_model_log_prob(model, model_loss, train_loader, params_fla
 
             if model_loss == 'binary_class_linear_output':
                 crit = nn.BCEWithLogitsLoss(reduction='sum')
-                ll = - tau_out *(crit(output, label))
+                ll = - crit(output, label)
             elif model_loss == 'multi_class_linear_output':
         #         crit = nn.MSELoss(reduction='mean')
                 crit = nn.CrossEntropyLoss(reduction='sum')
         #         crit = nn.BCEWithLogitsLoss(reduction='sum')
-                ll = - tau_out *(crit(output, label.long().view(-1)))
+                ll = - crit(output, label.long().view(-1))
                 # ll = - tau_out *(torch.nn.functional.nll_loss(output, y.long().view(-1)))
             elif model_loss == 'multi_class_log_softmax_output':
-                ll = - tau_out *(torch.nn.functional.nll_loss(output, label.long().view(-1)))
+                ll = - torch.nn.functional.nll_loss(output, label.long().view(-1))
 
             elif model_loss == 'regression':
-                # crit = nn.MSELoss(reduction='sum')
-                ll = - 0.5 * tau_out * ((output - label) ** 2)
+                crit = nn.MSELoss(reduction='sum')
+                ll = - crit(output, label)
+                # ll = - 0.5 * tau_out * ((output - label) ** 2)
 
             elif callable(model_loss):
                 # Assume defined custom log-likelihood.    
                 ll = - model_loss(output, label)
             else:
                 raise NotImplementedError()
-
+            
             total_loss += ll.detach()
 
             # Compute gradient
-            if return_grad: total_grad += torch.autograd.grad(ll + l_prior/prior_scale, params, retain_graph=True)[0].detach()
+            if return_grad: total_grad += torch.autograd.grad(ll, params)[0].detach()
 
-        return_values = [(total_loss + l_prior/prior_scale).item()]
+        return_values = [(tau_out * (total_loss) + l_prior/prior_scale).item()] 
         if predict:
             return_values.append(output)
         if return_grad:
-            return_values.append(total_grad)
+            return_values.append((total_grad / len(train_loader.dataset) + torch.autograd.grad(l_prior/prior_scale, params)[0]).detach())
         if return_hessian:
             raise NotImplemented("Hessian not implemented yet")
         if return_jacobian:
@@ -1576,7 +1577,7 @@ def sample_split_model(model, train_loader, params_init, num_splits, model_loss=
 
     return sample(log_prob_func, params_init, num_samples=num_samples, num_steps_per_sample=num_steps_per_sample, step_size=step_size, burn=burn, jitter=jitter, inv_mass=inv_mass, normalizing_const=normalizing_const, softabs_const=softabs_const, explicit_binding_const=explicit_binding_const, fixed_point_threshold=fixed_point_threshold, fixed_point_max_iterations=fixed_point_max_iterations, jitter_max_tries=jitter_max_tries, sampler=sampler, integrator=integrator, metric=metric, debug=debug, desired_accept_rate=desired_accept_rate, store_on_GPU = store_on_GPU)
 
-def sample_full_batch_model(model, train_loader, params_init, model_loss='multi_class_linear_output' ,num_samples=10, num_steps_per_sample=10, 
+def sample_full_batch_model(model:nn.Module, train_loader, params_init, model_loss='multi_class_linear_output' ,num_samples=10, num_steps_per_sample=10, 
                  step_size=0.1, burn=0, inv_mass=None, jitter=None, normalizing_const=1., softabs_const=None, explicit_binding_const=100, 
                  fixed_point_threshold=1e-5, fixed_point_max_iterations=1000, jitter_max_tries=10, sampler=Sampler.HMC, 
                  integrator=Integrator.IMPLICIT, metric=Metric.HESSIAN, debug=False, tau_out=1.,tau_list=None, store_on_GPU = True, 
@@ -1658,6 +1659,8 @@ def sample_full_batch_model(model, train_loader, params_init, model_loss='multi_
 
     """
 
+    tempTau = 1.
+
     device = params_init.device
     params_shape_list = []
     params_flattened_list = []
@@ -1669,7 +1672,7 @@ def sample_full_batch_model(model, train_loader, params_init, model_loss='multi_
         params_shape_list.append(weights.shape)
         params_flattened_list.append(weights.nelement())
         if build_tau:
-            tau_list.append(torch.tensor(1.))
+            tau_list.append(torch.tensor(tempTau)) #instead of 1.
 
     log_prob_func = define_full_batch_model_log_prob(model, model_loss, train_loader, params_flattened_list, params_shape_list, tau_list, tau_out, normalizing_const=normalizing_const,  device = device)
 

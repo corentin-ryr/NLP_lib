@@ -12,6 +12,7 @@ from torchmetrics.metric import Metric
 from tqdm import tqdm
 import os
 from datetime import datetime
+import math
 
 from Mixers.Helper.helper import InteractivePlot, generate_dashboard
 from Mixers.Trainers import hamiltorch
@@ -47,9 +48,12 @@ class Trainer():
         prettyModel = Pretty(self.model)
         self.console.print(Panel(prettyModel, title=f"[green]Device {self.device} | Number of parameters: {total_params}", border_style="green"))
         
-    def save_model(self):
+    def save_model(self, object_to_save=None):
         path = os.path.join(self.save_path, self.model._get_name() + "-" + datetime.today().strftime('%Y-%m-%d-%H-%M'))
-        torch.save(self.model.state_dict(), path)    
+        if not object_to_save:
+            torch.save(self.model.state_dict(), path)
+        else:
+            torch.save(object_to_save, path)
     
     def load_model(self, load_path):
         self.model.load_state_dict(torch.load(load_path))
@@ -139,17 +143,17 @@ class ClassificationTrainer(Trainer):
 
 class ClassificationTrainerHMC(Trainer):
 
-    def __init__(self, model:nn.Module, device='cpu', save_path:str="saves/",
+    def __init__(self, model:nn.Module, device='cpu', save_path:str="saves/", num_samples:int=100,
                  traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
         super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, batch_size=batch_size, collate_fn=collate_fn)
         
         self.step_size = 0.0005
-        self.num_samples = 2 #100
-        self.L = 30 # Remember, this is the trajectory length
+        self.num_samples = num_samples # 100
+        self.tau = 0.1
+        self.L = 30 # round(math.pi * self.tau / 2 / self.step_size) # Remember, this is the trajectory length
         self.burn = -1
         self.store_on_GPU = False # This tells sampler whether to store all samples on the GPU
-        self.tau = torch.tensor([1., 1., 1., 1., 1., 1.], device=device)
-        self.tau_out = 110.4
+        self.tau_out = 100.
         self.mass = 1.0 # Mass matrix diagonal scale
         
         self.params_hmc_f = []
@@ -166,9 +170,9 @@ class ClassificationTrainerHMC(Trainer):
         sampler = hamiltorch.Sampler.HMC # We are doing simple HMC with a standard leapfrog
 
         self.params_hmc_f = hamiltorch.sample_full_batch_model(self.model, self.trainloader, params_init=params_init,
-                                            model_loss=self.criterion, num_samples=self.num_samples,
+                                            model_loss="regression", num_samples=self.num_samples,
                                             burn = self.burn, inv_mass=inv_mass.to(self.device), step_size=self.step_size,
-                                            num_steps_per_sample=self.L ,tau_out=self.tau_out, 
+                                            num_steps_per_sample=self.L ,tau_out=self.tau_out,
                                             store_on_GPU=self.store_on_GPU, sampler = sampler, integrator=integrator)[1:]
 
         self.console.print(Align("\n\n[bold green]Finished Sampling", align="center"))
@@ -195,6 +199,17 @@ class ClassificationTrainerHMC(Trainer):
 
     
     # Building functions =========================================================================================================== 
+    def save_model(self):
+        object_to_save = self.params_hmc_f
+        return super().save_model(object_to_save)
+    
+    def load_model(self, load_path):
+        self.params_hmc_f = torch.load(load_path)
+        print(self.params_hmc_f)
+
+
+
+    
     def set_loss(self, loss:_Loss) -> ClassificationTrainer:
         self.criterion = loss()
         
