@@ -33,3 +33,6 @@ if __name__ == "__main__":
         url='https://github.com/corentin-ryr/NLP_lib',
         install_requires=BASE_REQUIREMENTS,
         )
+
+    import nltk
+    nltk.download('punkt')

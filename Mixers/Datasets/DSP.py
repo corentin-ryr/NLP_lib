@@ -15,7 +15,7 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
     
     def __init__(self, train=True, shuffle=True, limit=None) -> None:
         
-        self.dirpath = "data/imdb/" + ("train" if train else "test")
+        self.finalPath = "train" if train else "test"
         
         fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*"))
         fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*"))
@@ -38,7 +38,7 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
             os.remove(filename)
             return "Deleted"
 
-        with open(filename, 'r') as file:
+        with open(filename, 'r', encoding="utf8") as file:
             text = "".join(file.readlines())
             text = BeautifulSoup(text, "lxml").text
 
@@ -61,9 +61,9 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
             self.nbCreated += 1
 
         return dictionary["raw"]
-        
+         
     def _get_path(self):
-        return os.path.join(os.getcwd(), self.dirpath)
+        return os.path.join(os.getcwd(), "data", "imdb", self.finalPath)
     
     def __len__(self):
         return len(self.labels)
@@ -79,7 +79,7 @@ class IMDBSentimentAnalysis(Dataset):
 
     def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", sentenceLength:int=200, keepInMemory:bool=False) -> None:
         
-        self.dirpath = "data/imdb/" + ("train" if train else "test")
+        self.finalPath = "train" if train else "test"
        
         if textFormat not in IMDBSentimentAnalysis.kinds: raise ValueError(f"Kind must be in {IMDBSentimentAnalysis.kinds}")
         self.textFormat = textFormat
@@ -87,8 +87,10 @@ class IMDBSentimentAnalysis(Dataset):
         self.sentenceLength = sentenceLength
         self.keepInMemory = keepInMemory
 
-        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.json"))
-        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.json"))
+        fileListPos = glob.glob(os.path.join(self._get_path(), "pos", "*.json"))
+        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg", "*.json"))
+
+        print(os.path.join(self._get_path(), "pos", "*.json"))
 
         if len(fileListNeg) + len(fileListPos) == 0: raise ValueError("No files in the directory data/imdb/")
         
@@ -130,7 +132,7 @@ class IMDBSentimentAnalysis(Dataset):
         return pad_list(dictionary[self.textFormat], self.sentenceLength)
         
     def _get_path(self):
-        return os.path.join(os.getcwd(), self.dirpath)
+        return os.path.join(os.getcwd(), "data", "imdb", self.finalPath)
     
     def __len__(self):
         return min([len(self.labels), self.limit])
