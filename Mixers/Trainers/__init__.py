@@ -1,1 +1,0 @@
-from .trainerDirector import TrainerDirector
