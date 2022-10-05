@@ -1,7 +1,7 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
 from Mixers.NLPMixer.nlpmixer import NLP_Mixer
 from Mixers.Trainers.trainerDirector import TrainerDirector
-from Mixers.Helper.helper import get_device
+from Mixers.Utils.helper import get_device
 from Mixers.Inference.interactiveInference import InteractiveInferenceClassification
 
 

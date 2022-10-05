@@ -1,4 +1,4 @@
-from torchtext.transforms import BERTTokenizer
+# from torchtext.transforms import BERTTokenizer 
 import torch
 
 from nltk.tokenize import word_tokenize
