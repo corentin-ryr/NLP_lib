@@ -13,7 +13,7 @@ from tqdm import tqdm
 import os
 from datetime import datetime
 
-from Mixers.Helper.helper import InteractivePlot, generate_dashboard, collate_callable
+from Mixers.Utils.helper import InteractivePlot, generate_dashboard, collate_callable
 from Mixers.Trainers import hamiltorch
 
 from rich.align import Align
@@ -28,6 +28,7 @@ class Trainer():
         self.model = model.to(device)
         self.device = device
         self.save_path = save_path
+
         if traindataset: self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
         if testdataset: self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
         if evaldataset: self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)

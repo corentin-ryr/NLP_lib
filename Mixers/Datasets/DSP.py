@@ -9,7 +9,7 @@ import json
 from bs4 import BeautifulSoup
 import glob
 
-from Mixers.Helper.helper import pad_list
+from Mixers.Utils.helper import pad_list
 
 class IMDBSentimentAnalysisDatasetCreator(Dataset):
     
@@ -90,7 +90,7 @@ class IMDBSentimentAnalysis(Dataset):
         fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.json"))
         fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.json"))
 
-        print(len(fileListNeg) + len(fileListPos))
+        if len(fileListNeg) + len(fileListPos) == 0: raise ValueError("No files in the directory data/imdb/")
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg), 
