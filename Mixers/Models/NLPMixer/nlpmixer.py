@@ -14,7 +14,7 @@ from einops.layers.torch import Rearrange
 import numpy as np
 
 
-class ProjectiveLayer(nn.Module):
+class ProjectiveLayer():
     
     def __init__(self, N:int, S:int, M:int, W:int) -> None:
         """_summary_
@@ -22,8 +22,6 @@ class ProjectiveLayer(nn.Module):
         Args:
             N (int): Number of hash functions
         """
-        super().__init__()
-
         self.nbHashFunc = N
         self.sentenceLength = S
         self.bloomLength = M
@@ -33,7 +31,7 @@ class ProjectiveLayer(nn.Module):
         self.rearrange = Rearrange('b n d -> b d n')
         
         
-    def forward(self, batchSentences:list[str]) -> torch.Tensor:
+    def __call__(self, batchSentences:list[str]) -> torch.Tensor:
                 
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
