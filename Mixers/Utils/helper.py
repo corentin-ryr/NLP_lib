@@ -94,4 +94,3 @@ def get_device(useGPU):
         return torch.device("mps")
 
     return torch.device("cpu")
-

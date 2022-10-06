@@ -179,6 +179,7 @@ def hessian(output, inputs, out=None, allow_unused=False, create_graph=False, re
 
     ai = 0
     for i, inp in enumerate(inputs):
+        print(i)
         [grad] = torch.autograd.grad(output, inp, create_graph=True, allow_unused=allow_unused)
         grad = torch.zeros_like(inp) if grad is None else grad
         grad = grad.contiguous().view(-1)
@@ -195,6 +196,7 @@ def hessian(output, inputs, out=None, allow_unused=False, create_graph=False, re
             del row
             ai += 1
         del grad
+    raise Exception
     # https://github.com/pytorch/pytorch/issues/16532
     if return_inputs:
         return out, inputs
@@ -209,6 +211,7 @@ def jacobian(outputs, inputs, create_graph=False, return_inputs = False):
     jacobian(x * y, [x, y])
     jacobian([x * y, x.sqrt()], [x, y])
     '''
+    print("Jacobian")
     if torch.is_tensor(outputs):
         outputs = [outputs]
     else:

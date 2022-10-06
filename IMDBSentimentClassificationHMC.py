@@ -1,19 +1,26 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
-from Mixers.NLPMixer.nlpmixer import NLP_Mixer
+from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer, ProjectiveLayer
 from Mixers.Trainers.trainerDirector import TrainerDirector
+from Mixers.Helper.helper import collate_callable, get_device
 
-import torch
+
+
+sentenceLength = 100
+textFormat = "raw"
+useGPU = False
 
 if __name__ == "__main__":
-    useGPU = True
+    device = get_device(useGPU)
+
+    preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
+
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, limit=10)
+    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat)
+
+    model = NLP_Mixer(sentenceLength=sentenceLength, depth=2)
     
-    traindataset = IMDBSentimentAnalysis(limit=1000)
-    testdataset = IMDBSentimentAnalysis(train=False)
-    model = NLP_Mixer(sentenceLength=200, depth=2, applyPreprocessing=False)
-    
-    device = torch.device("cuda:0" if torch.cuda.is_available() and useGPU else "cpu")
-    
-    trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, device=device) 
+    trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, 
+                                            device=device, batch_size=256, collate_fn=collate_callable(preprocessor)) 
     
     trainer.summarize_model()
     

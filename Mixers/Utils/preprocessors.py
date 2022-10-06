@@ -4,10 +4,10 @@ import torch
 from nltk.tokenize import word_tokenize
 from nltk import ngrams
 
-import torch.nn as nn
 from Mixers.NLPMixer.hashing import MultiHashing
 import numpy as np
 
+from einops.layers.torch import Rearrange
 
 # VOCAB_FILE = "https://huggingface.co/bert-base-uncased/resolve/main/vocab.txt"
 
@@ -18,52 +18,49 @@ import numpy as np
 # tokenizer(["Hello World","How are you!"]) # batch input
 
 
-def pad_list(l, length):
-    l = l[:length]
-    l += [""] * (length - len(l))
-    return l
-
-
-
 
 class collate_callable():
-    def __init__(self, sentenceLength:int=200) -> None:
-        self.sentenceLength = sentenceLength
+    def __init__(self,  preprocessor=None) -> None:
+        self.preprocessor = preprocessor
 
     def __call__(self, data):
         data, label = list(zip(*data))
         label = torch.stack(label)
 
+        if self.preprocessor: data = self.preprocessor(data)
+
         return data, label
 
+def pad_list(l, length):
+    l = l[:length]
+    l += [""] * (length - len(l))
+    return l
 
-class ProjectiveLayer(nn.Module):
+class ProjectiveLayer():
     
     def __init__(self, N:int, S:int, M:int, W:int) -> None:
         """_summary_
-
         Args:
             N (int): Number of hash functions
         """
-        super().__init__()
-        
-
         self.nbHashFunc = N
         self.sentenceLength = S
         self.bloomLength = M
         self.windowSize = W
         self.hashFunc = MultiHashing(self.nbHashFunc)
+
+        self.rearrange = Rearrange('b n d -> b d n')
         
         
-    def forward(self, batchSentences:list[str]) -> torch.Tensor:
+    def __call__(self, batchSentences:list[str]) -> torch.Tensor:
                 
         sentencesMinHashes = np.zeros( (len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64 )
 
         for idxSentence, sentence in enumerate(batchSentences):
             if type(sentence) == str:
-                sentence = word_tokenize(sentence)[:self.sentenceLength]
+                sentence = word_tokenize(sentence)
 
-            for idx, word in enumerate(sentence):
+            for idx, word in enumerate(pad_list(sentence, self.sentenceLength)):
                 if type(word) == str:
                     wordGrammed = ["".join(i) for i in ngrams(word, 3)]
                     if not wordGrammed: wordGrammed = [word]
@@ -76,7 +73,7 @@ class ProjectiveLayer(nn.Module):
         floatCounter = self.counting_bloom_filter(sentencesMinHashes)
         batchmovingWindowFloatCounter = self.moving_window(floatCounter)
 
-        return batchmovingWindowFloatCounter
+        return self.rearrange(batchmovingWindowFloatCounter)
     
  
     def counting_bloom_filter(self, F:np.ndarray) -> torch.Tensor:

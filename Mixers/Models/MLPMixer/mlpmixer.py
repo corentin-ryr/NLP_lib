@@ -75,8 +75,6 @@ class MLPMixer(nn.Module):
 
         x = self.to_patch_embedding(x)
                 
-        print(f"{x.shape=}")
-        
         for mixer_block in self.mixer_blocks:
             x = mixer_block(x)
 
@@ -85,8 +83,6 @@ class MLPMixer(nn.Module):
         x = x.mean(dim=1)
 
         return self.mlp_head(x)
-
-
 
 
 if __name__ == "__main__":
