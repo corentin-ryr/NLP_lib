@@ -15,7 +15,7 @@ from datetime import datetime
 import math
 
 from Mixers.Utils.helper import InteractivePlot, generate_dashboard
-from Mixers.Trainers import hamiltorch
+import Mixers.Trainers.hamiltorch as hamiltorch
 
 from rich.align import Align
 from rich.panel import Panel

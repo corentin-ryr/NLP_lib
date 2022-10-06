@@ -4,7 +4,7 @@ import torch
 from nltk.tokenize import word_tokenize
 from nltk import ngrams
 
-from Mixers.NLPMixer.hashing import MultiHashing
+from Mixers.Models.NLPMixer.hashing import MultiHashing
 import numpy as np
 
 from einops.layers.torch import Rearrange

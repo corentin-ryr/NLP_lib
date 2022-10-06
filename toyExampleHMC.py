@@ -1,8 +1,8 @@
 from Mixers.Datasets.DSP import  ToyDataset
 from Mixers.Models.toyModel import ToyModel
-from Mixers.Trainers import hamiltorch
+import Mixers.Trainers.hamiltorch as hamiltorch
 from Mixers.Trainers.trainerDirector import TrainerDirector
-from Mixers.Helper.helper import get_device
+from Mixers.Utils.helper import get_device
 
 import torch
 from torch.utils.data import DataLoader

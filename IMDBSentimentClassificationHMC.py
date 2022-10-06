@@ -1,7 +1,8 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
-from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer, ProjectiveLayer
+from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer
 from Mixers.Trainers.trainerDirector import TrainerDirector
-from Mixers.Helper.helper import collate_callable, get_device
+from Mixers.Utils.helper import get_device
+from Mixers.Utils.preprocessors import collate_callable, ProjectiveLayer
 
 
 

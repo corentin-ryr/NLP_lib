@@ -1,6 +1,6 @@
 from Mixers.Datasets.DSP import MTOPEnglish
-from Mixers.Helper.helper import collate_callable
-from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer, ProjectiveLayer
+from Mixers.Utils.preprocessors import collate_callable, ProjectiveLayer
+from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer
 from Mixers.Trainers.trainerDirector import TrainerDirector
 
 import torch

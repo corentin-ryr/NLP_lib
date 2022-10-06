@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from Mixers.MLPMixer.mlpmixer import MixerBlock
+from Mixers.Models.MLPMixer.mlpmixer import MixerBlock
 
         
 class NLP_Mixer(nn.Module):
