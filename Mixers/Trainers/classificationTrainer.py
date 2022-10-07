@@ -32,7 +32,7 @@ class ClassificationTrainer(Trainer):
 
 
     def train(self):
-        self.console.print(Align("\n\nStarting training", align="center"))
+        super().train()
 
         for epoch in range(self.nb_epochs):  # loop over the dataset multiple times
             self.model.train()
@@ -121,9 +121,8 @@ class ClassificationTrainerHMC(Trainer):
 
 
     def train(self):
-        
-        self.console.print(Align("\n\nStarting training", align="center"))
-        
+        super().train()        
+
         params_init = hamiltorch.util.flatten(self.model).to(self.device).clone()
         inv_mass = torch.ones(params_init.shape) / self.mass # Diagonal of inverse mass matrix
 

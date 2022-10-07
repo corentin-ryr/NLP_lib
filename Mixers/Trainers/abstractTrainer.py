@@ -9,23 +9,29 @@ from torch.utils.data import DataLoader, Dataset
 from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.console import Console
+from rich.align import Align
 
 
 
 
 class Trainer(ABC):
-    def __init__(self, model:nn.Module, device, save_path:str, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
+    def __init__(self, model:nn.Module, device, save_path:str, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, **kwargs) -> None:
         self.model:nn.Module = model.to(device)
         self.device = device
         self.save_path = save_path
+
+        if "shuffle" in kwargs:
+            shuffle = kwargs["shuffle"]
+        else: shuffle = True
+
         if traindataset: 
-            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
             if collate_fn: self.trainloader.collate_fn = collate_fn
         if testdataset: 
-            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
             if collate_fn: self.testloader.collate_fn = collate_fn
         if evaldataset: 
-            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)
+            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
             if collate_fn: self.evalloader.collate_fn = collate_fn
 
         self.batch_size = batch_size
@@ -49,7 +55,8 @@ class Trainer(ABC):
 
     @abstractmethod
     def train(self):
-        pass
+        self.console.print(Align("\n\nStarting training at " + datetime.now().strftime("%H:%M:%S"), align="center"))
+
 
     @abstractmethod
     def validate(self):
