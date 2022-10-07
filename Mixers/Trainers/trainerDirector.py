@@ -1,4 +1,3 @@
-from cgitb import text
 from .classificationTrainer import ClassificationTrainer, ClassificationTrainerHMC
 
 from torch import nn
@@ -6,7 +5,6 @@ import torch.optim as optim
 from torch.utils.data import Dataset
 
 from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision
-
 
 class TrainerDirector():
     

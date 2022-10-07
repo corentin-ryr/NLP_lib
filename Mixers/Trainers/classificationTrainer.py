@@ -4,61 +4,22 @@ import torch
 from torch import nn
 from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision
 from torchmetrics.metric import Metric
 
 from tqdm import tqdm
-import os
-from datetime import datetime
-import math
 
 from Mixers.Utils.helper import InteractivePlot, generate_dashboard
 import Mixers.Trainers.hamiltorch as hamiltorch
+from Mixers.Trainers.abstractTrainer import Trainer
 
 from rich.align import Align
 from rich.panel import Panel
-from rich.pretty import Pretty
 from rich.progress import Progress
-from rich.console import Console
 
-
-class Trainer():
-    def __init__(self, model:nn.Module, device, save_path:str, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
-        self.model = model.to(device)
-        self.device = device
-        self.save_path = save_path
-        if traindataset: 
-            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=True, num_workers=4)
-            if collate_fn: self.trainloader.collate_fn = collate_fn
-        if testdataset: 
-            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=True, num_workers=4)
-            if collate_fn: self.testloader.collate_fn = collate_fn
-        if evaldataset: 
-            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=True, num_workers=4)
-            if collate_fn: self.evalloader.collate_fn = collate_fn
-
-        self.batch_size = batch_size
-        
-        self.console = Console()
-        
-    def summarize_model(self):
-        total_params = sum(p.numel() for p in self.model.parameters())
-        prettyModel = Pretty(self.model)
-        self.console.print(Panel(prettyModel, title=f"[green]Device {self.device} | Number of parameters: {total_params}", border_style="green"))
-        
-    def save_model(self, object_to_save=None):
-        path = os.path.join(self.save_path, self.model._get_name() + "-" + datetime.today().strftime('%Y-%m-%d-%H-%M'))
-        if not object_to_save:
-            torch.save(self.model.state_dict(), path)
-        else:
-            torch.save(object_to_save, path)
     
-    def load_model(self, load_path):
-        self.model.load_state_dict(torch.load(load_path))
-    
-
 class ClassificationTrainer(Trainer):
 
     def __init__(self, model:nn.Module, display_loss:bool=False, nb_epochs:int=20, device='cpu', save_path:str="saves/", 
