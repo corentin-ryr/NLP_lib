@@ -1,3 +1,4 @@
+from typing import List
 import matplotlib.pyplot as plt
 import random
 
@@ -68,7 +69,7 @@ def confusion_matrix_renderable(metric:ConfusionMatrix) -> Table:
         
     return confusionTable
 
-def generate_dashboard(metric_set:list[Metric]):
+def generate_dashboard(metric_set:List[Metric]):
     metricsTable = Table()
 
     metricsTable.add_column("Metric", justify="right", style="cyan", no_wrap=True)

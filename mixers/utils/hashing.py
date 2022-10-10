@@ -1,5 +1,6 @@
 import random
 import hashlib
+from typing import List
 
 class MultiHashing():
 
@@ -23,7 +24,7 @@ class MultiHashing():
     def _hash_with_mask(self, x, n):
         return int.from_bytes(hashlib.sha1(x.encode('UTF-8')).digest()[:4], 'little') ^ self._memomask[n]
     
-    def compute_hashes(self, x:str) -> list[int]:
+    def compute_hashes(self, x:str) -> List[int]:
         if x not in self.lookupDict:
             self.lookupDict[x] = [self._hash_with_mask(x, n) for n in range(self.N)]
         return self.lookupDict[x]

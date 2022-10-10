@@ -1,4 +1,5 @@
 # from torchtext.transforms import BERTTokenizer 
+from typing import List
 import torch
 
 from nltk.tokenize import word_tokenize
@@ -62,7 +63,7 @@ class ProjectiveLayer:
 
         self.rearrange = Rearrange("b n d -> b d n")
 
-    def __call__(self, batchSentences: list[str]) -> torch.Tensor:
+    def __call__(self, batchSentences: List[str]) -> torch.Tensor:
 
         sentencesMinHashes = np.zeros((len(batchSentences), self.sentenceLength, self.nbHashFunc), dtype=np.int64)
 

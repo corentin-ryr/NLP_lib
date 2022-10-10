@@ -1,5 +1,5 @@
 from ctypes import sizeof
-from typing import Union
+from typing import List, Union
 import torch
 import torch.nn as nn
 from enum import Enum
@@ -1291,7 +1291,7 @@ def define_full_batch_model_log_prob(model, model_loss, train_loader, params_fla
 
     """
     fmodel = util.make_functional(model)
-    dist_list:list[torch.distributions.Normal] = []
+    dist_list:List[torch.distributions.Normal] = []
     for tau in tau_list:
         dist_list.append(torch.distributions.Normal(torch.zeros_like(tau_list[0]), 0.1)) #  tau**-0.5
 

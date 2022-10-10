@@ -1,9 +1,10 @@
 from distutils.core import setup
 import os
+from typing import List
 
 _PATH_ROOT = os.path.realpath(os.path.dirname(__file__))
 
-def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comment_char: str = "#") -> list[str]:
+def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comment_char: str = "#") -> List[str]:
     """Load requirements from a file.
     >>> _load_requirements(_PATH_ROOT)
     ['numpy...', 'torch..."]

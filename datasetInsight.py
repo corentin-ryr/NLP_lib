@@ -1,3 +1,4 @@
+from typing import List
 from mixers.datasets.DSP import IMDBSentimentAnalysis, MTOPEnglish
 from tqdm import tqdm
 from nltk.tokenize import word_tokenize
@@ -5,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math as m
 
-def percentage_hist(l:list[int], n:int):
+def percentage_hist(l:List[int], n:int):
     
     maxVal = max(l)
     bins = np.linspace(0, maxVal, n)
