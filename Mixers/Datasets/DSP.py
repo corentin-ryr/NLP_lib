@@ -9,7 +9,7 @@ import json
 from bs4 import BeautifulSoup
 import glob
 
-from Mixers.Models.toyModel import ToyModel
+from mixers.models.toyModel import ToyModel
 
 class IMDBSentimentAnalysisDatasetCreator(Dataset):
     

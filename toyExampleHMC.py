@@ -1,8 +1,8 @@
-from Mixers.Datasets.DSP import  ToyDataset
-from Mixers.Models.toyModel import ToyModel
-import Mixers.Trainers.hamiltorch as hamiltorch
-from Mixers.Trainers.trainerDirector import TrainerDirector
-from Mixers.Utils.helper import get_device
+from mixers.trainers.classificationTrainers import ClassificationTrainerHMC
+from mixers.datasets.DSP import  ToyDataset
+from mixers.models.toyModel import ToyModel
+import mixers.trainers.hamiltorch as hamiltorch
+from mixers.utils.helper import get_device
 
 import torch
 from torch.utils.data import DataLoader
@@ -46,7 +46,11 @@ if __name__ == "__main__":
     num_samples = 40
     model = ToyModel().to(device)
 
-    trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, device=device, batch_size=256, num_samples=num_samples) 
+    # trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, device=device, batch_size=256, num_samples=num_samples) 
+
+    trainer = ClassificationTrainerHMC(model, device=device, traindataset=traindataset, testdataset=testdataset, batch_size=256, 
+                                        num_samples=num_samples, num_classes=2)
+
 
     trainer.summarize_model()
 

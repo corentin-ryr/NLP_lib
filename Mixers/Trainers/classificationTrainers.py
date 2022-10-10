@@ -8,9 +8,9 @@ from torch import optim
 
 from torchmetrics import Accuracy
 
-from Mixers.Utils.helper import InteractivePlot, generate_dashboard
-import Mixers.Trainers.hamiltorch as hamiltorch
-from Mixers.Trainers.abstractTrainers import ClassificationTrainerAbstract
+from mixers.utils.helper import InteractivePlot, generate_dashboard
+import mixers.trainers.hamiltorch as hamiltorch
+from mixers.trainers.abstractTrainers import ClassificationTrainerAbstract
 
 from rich.align import Align
 from rich.panel import Panel

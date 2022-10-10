@@ -1,7 +1,7 @@
-from Mixers.Datasets.DSP import MTOPEnglish
-from Mixers.Trainers.classificationTrainers import ClassificationTrainer
-from Mixers.Utils.preprocessors import collate_callable, ProjectiveLayer
-from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer
+from mixers.datasets.DSP import MTOPEnglish
+from mixers.trainers.classificationTrainers import ClassificationTrainer
+from mixers.utils.preprocessors import collate_callable, ProjectiveLayer
+from mixers.models.NLPMixer.nlpmixer import NLP_Mixer
 
 import torch
 from torch import nn

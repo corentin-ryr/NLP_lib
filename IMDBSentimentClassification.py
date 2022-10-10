@@ -1,8 +1,8 @@
-from Mixers.Datasets.DSP import IMDBSentimentAnalysis
-from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer
-from Mixers.Trainers.classificationTrainers import ClassificationTrainer
-from Mixers.Utils.helper import get_device
-from Mixers.Utils.preprocessors import collate_callable, ProjectiveLayer
+from mixers.datasets.DSP import IMDBSentimentAnalysis
+from mixers.models.NLPMixer.nlpmixer import NLP_Mixer
+from mixers.trainers.classificationTrainers import ClassificationTrainer
+from mixers.utils.helper import get_device
+from mixers.utils.preprocessors import collate_callable, ProjectiveLayer
 
 from torch import nn
 

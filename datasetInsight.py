@@ -1,4 +1,4 @@
-from Mixers.Datasets.DSP import IMDBSentimentAnalysis, MTOPEnglish
+from mixers.datasets.DSP import IMDBSentimentAnalysis, MTOPEnglish
 from tqdm import tqdm
 from nltk.tokenize import word_tokenize
 import matplotlib.pyplot as plt
