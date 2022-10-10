@@ -1,9 +1,10 @@
 from Mixers.Datasets.DSP import MTOPEnglish
+from Mixers.Trainers.classificationTrainers import ClassificationTrainer
 from Mixers.Utils.preprocessors import collate_callable, ProjectiveLayer
 from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer
-from Mixers.Trainers.trainerDirector import TrainerDirector
 
 import torch
+from torch import nn
 
 sentenceLength = 20
 useGPU = True
@@ -17,12 +18,10 @@ if __name__ == "__main__":
     testdataset = MTOPEnglish(set="test")
 
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, nbClasses=11, device=device)
-    
-    trainer = TrainerDirector.get_multiclass_trainer(model=model, traindataset=traindataset, testdataset=testdataset, 
-                                                    num_classes=11, batch_size=256, device=device, nb_epochs=20,
-                                                    collate_fn=collate_callable(preprocessor)
-                                                    ) 
-    
+  
+    trainer = ClassificationTrainer(model, nb_epochs=20, device=device, traindataset=traindataset, testdataset=testdataset,
+                                    batch_size=256, collate_fn=collate_callable(preprocessor), num_classes=11, loss=nn.CrossEntropyLoss)
+
     trainer.summarize_model()
     
     # trainer.load_model("saves/NLP_Mixer_Binary-2022-09-12-12:44")

@@ -1,6 +1,6 @@
 from Mixers.Datasets.DSP import IMDBSentimentAnalysis
 from Mixers.Models.NLPMixer.nlpmixer import NLP_Mixer
-from Mixers.Trainers.trainerDirector import TrainerDirector
+from Mixers.Trainers.classificationTrainers import ClassificationTrainerHMC
 from Mixers.Utils.helper import get_device
 from Mixers.Utils.preprocessors import collate_callable, ProjectiveLayer
 
@@ -20,9 +20,9 @@ if __name__ == "__main__":
 
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2)
     
-    trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, 
-                                            device=device, batch_size=256, collate_fn=collate_callable(preprocessor)) 
-    
+    trainer = ClassificationTrainerHMC(model, device=device, traindataset=traindataset, testdataset=testdataset, batch_size=256, 
+                                        collate_fn=collate_callable(preprocessor), num_samples=40, num_classes=2)
+
     trainer.summarize_model()
     
     # trainer.load_model("saves/NLP_Mixer_Binary-2022-09-12-12:44")

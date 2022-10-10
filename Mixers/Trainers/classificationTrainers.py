@@ -1,34 +1,38 @@
 from __future__ import annotations
+from tqdm import tqdm
 
 import torch
 from torch import nn
-from torch.nn.modules.loss import _Loss
-from torch.optim.optimizer import Optimizer
 from torch.utils.data import Dataset
+from torch import optim
 
-from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision
-from torchmetrics.metric import Metric
-
-from tqdm import tqdm
+from torchmetrics import Accuracy
 
 from Mixers.Utils.helper import InteractivePlot, generate_dashboard
 import Mixers.Trainers.hamiltorch as hamiltorch
-from Mixers.Trainers.abstractTrainer import Trainer
+from Mixers.Trainers.abstractTrainers import ClassificationTrainerAbstract
 
 from rich.align import Align
 from rich.panel import Panel
 from rich.progress import Progress
 
     
-class ClassificationTrainer(Trainer):
+class ClassificationTrainer(ClassificationTrainerAbstract):
 
-    def __init__(self, model:nn.Module, display_loss:bool=False, nb_epochs:int=20, device='cpu', save_path:str="saves/", 
-                 traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
-        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, batch_size=batch_size, collate_fn=collate_fn)
+    def __init__(self, model:nn.Module, display_loss:bool=False, nb_epochs:int=20, device='cpu', save_path:str="saves/", traindataset:Dataset=None, 
+                testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, num_classes=2, collate_fn=None, **kwargs) -> None:
+        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, 
+                        batch_size=batch_size, num_classes=num_classes, collate_fn=collate_fn, kwargs=kwargs)
         
         self.display_loss = display_loss
         self.nb_epochs = nb_epochs
         if self.display_loss: self.interactivePlot = InteractivePlot(1)
+
+        if "lr" in kwargs: self.lr = kwargs["lr"]
+        else: self.lr = 1e-5
+
+        if "optimizer" in kwargs: self.criterion = kwargs["optimizer"](self.model.parameters(), self.lr)
+        else: self.optimizer = optim.Adam(self.model.parameters(), self.lr)
 
 
     def train(self):
@@ -82,31 +86,16 @@ class ClassificationTrainer(Trainer):
         layout = generate_dashboard(self.metric_set)
         self.console.print(Panel(layout, title=f"[green]Validation", border_style="green", height=20))
         
-    # Building functions =========================================================================================================== 
-    def set_optimizer_and_loss(self, loss:_Loss, optimizer:Optimizer, lr=1e-5) -> ClassificationTrainer:
-        self.criterion = loss()
-        self.optimizer = optimizer(self.model.parameters(), lr)
-        
-        return self
-        
-    supportedMetrics = {Accuracy, Recall, Precision}
-    def set_validation_metrics(self, metrics_set:set[Metric], num_classes:int):
-        self.num_classes = num_classes
-        self.metric_set:set[Metric] = set()
-        for metric in metrics_set:
-            if metric in ClassificationTrainer.supportedMetrics: 
-                self.metric_set.add(metric(num_classes) if num_classes > 2 else metric())
-            if metric in {ConfusionMatrix}:
-                self.metric_set.add(metric(num_classes))
-            
-        return self
     
+                
 
-class ClassificationTrainerHMC(Trainer):
+class ClassificationTrainerHMC(ClassificationTrainerAbstract):
 
     def __init__(self, model:nn.Module, device='cpu', save_path:str="saves/", num_samples:int=100,
-                 traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None) -> None:
-        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, batch_size=batch_size, collate_fn=collate_fn)
+                 traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, 
+                 batch_size:int=256, collate_fn=None, num_classes=2, **kwargs) -> None:
+        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, 
+                        batch_size=batch_size, num_classes=num_classes, collate_fn=collate_fn, kwargs=kwargs)
         
         self.step_size = 0.0005
         self.num_samples = num_samples # 100
@@ -147,7 +136,7 @@ class ClassificationTrainerHMC(Trainer):
                 
                 preds = hamiltorch.inference_model(self.model, self.params_hmc_f, inputs)
                 outputs = torch.mean(preds, dim=0)
-                
+
                 outputs = outputs.detach().cpu()
                 labels = labels.detach()
 
@@ -158,7 +147,7 @@ class ClassificationTrainerHMC(Trainer):
         self.console.print(Panel(layout, title=f"[green]Validation", border_style="green", height=20))
 
     
-    # Building functions =========================================================================================================== 
+    # Helper functions =========================================================================================================== 
     def save_model(self):
         object_to_save = self.params_hmc_f
         return super().save_model(object_to_save)
@@ -166,24 +155,3 @@ class ClassificationTrainerHMC(Trainer):
     def load_model(self, load_path):
         self.params_hmc_f = torch.load(load_path)
         print(self.params_hmc_f)
-
-
-
-    
-    def set_loss(self, loss:_Loss) -> ClassificationTrainer:
-        self.criterion = loss()
-        
-        return self
-        
-    supportedMetrics = {Accuracy, Recall, Precision}
-    def set_validation_metrics(self, metrics_set:set[Metric], num_classes:int):
-        self.num_classes = num_classes
-        self.metric_set:set[Metric] = set()
-        for metric in metrics_set:
-            if metric in ClassificationTrainer.supportedMetrics: 
-                self.metric_set.add(metric(num_classes if num_classes > 2 else 1))
-            if metric in {ConfusionMatrix}:
-                self.metric_set.add(metric(num_classes))
-            
-        return self
-
