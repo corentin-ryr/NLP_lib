@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.align import Align
 
 from torchmetrics.metric import Metric
-from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision
+from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision, MeanSquaredError
 
 
 
@@ -81,11 +81,7 @@ class ClassificationTrainerAbstract(Trainer):
         self.num_classes = num_classes
         self.metric_set:set[Metric] = set()
         if "metric_set" in kwargs:
-            for metric in kwargs["metric_set"]:
-                if metric in ClassificationTrainerAbstract.supportedMetrics: 
-                    self.metric_set.add(metric(num_classes) if num_classes > 2 else metric())
-                if metric in {ConfusionMatrix}:
-                    self.metric_set.add(metric(num_classes))
+            self.metric_set = kwargs["metric_set"]
         else:
             if num_classes == 2: self.metric_set = {ConfusionMatrix, Accuracy, Recall, Precision}
             else: self.metric_set = {ConfusionMatrix, Accuracy}
@@ -101,6 +97,35 @@ class ClassificationTrainerAbstract(Trainer):
                 new_metric_set.add(metric(self.num_classes) if self.num_classes > 2 else metric())
             if metric in {ConfusionMatrix}:
                 new_metric_set.add(metric(self.num_classes))
+        self.metric_set = new_metric_set
+        
+        self.criterion = self.criterion()
+
+
+class RegressionTrainerAbstract(Trainer):
+
+    def __init__(self, model: nn.Module, device, save_path: str, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, **kwargs) -> None:
+        super().__init__(model, device, save_path, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
+        
+        if "loss" in kwargs: self.criterion = kwargs["loss"]
+        else:
+            self.criterion = nn.MSELoss
+
+        self.metric_set:set[Metric] = set()
+        if "metric_set" in kwargs:
+            self.metric_set = kwargs["metric_set"]
+        else:
+            self.metric_set = {MeanSquaredError}
+
+        self._init_metrics_loss()
+
+    # Helper functions ===========================================================================================================  
+    supportedMetrics = {MeanSquaredError}
+    def _init_metrics_loss(self):
+        new_metric_set = set()
+        for metric in self.metric_set:
+            if metric in ClassificationTrainerAbstract.supportedMetrics: 
+                new_metric_set.add(metric())
         self.metric_set = new_metric_set
         
         self.criterion = self.criterion()

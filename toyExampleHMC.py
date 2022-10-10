@@ -2,6 +2,7 @@ from mixers.trainers.classificationTrainers import ClassificationTrainerHMC
 from mixers.datasets.DSP import  ToyDataset
 from mixers.models.toyModel import ToyModel
 import mixers.trainers.hamiltorch as hamiltorch
+from mixers.trainers.regressionTrainers import RegressionTrainerHMC
 from mixers.utils.helper import get_device
 
 import torch
@@ -48,9 +49,7 @@ if __name__ == "__main__":
 
     # trainer = TrainerDirector.get_hmc_trainer(model=model, traindataset=traindataset, testdataset=testdataset, device=device, batch_size=256, num_samples=num_samples) 
 
-    trainer = ClassificationTrainerHMC(model, device=device, traindataset=traindataset, testdataset=testdataset, batch_size=256, 
-                                        num_samples=num_samples, num_classes=2)
-
+    trainer = RegressionTrainerHMC(model, device=device, traindataset=traindataset, testdataset=testdataset, batch_size=256, num_samples=num_samples)
 
     trainer.summarize_model()
 
