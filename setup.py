@@ -27,7 +27,7 @@ def _load_requirements(path_dir: str, file_name: str = "requirements.txt", comme
 BASE_REQUIREMENTS = _load_requirements(path_dir=_PATH_ROOT, file_name="requirements.txt")
 
 if __name__ == "__main__":
-    setup(name='NLP_Lib',
+    setup(name='nlp-lib',
         version='1.0',
         description='Various tools for NLP with PyTorch',
         author='Corentin Royer',
