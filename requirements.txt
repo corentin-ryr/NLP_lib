@@ -11,5 +11,5 @@ soupsieve
 termcolor
 torch
 torchmetrics
-torchtext
+torchtext>=0.12
 tqdm
