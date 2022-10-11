@@ -9,7 +9,7 @@ regex
 rich
 soupsieve
 termcolor
-torch
+torch<=1.12
 torchmetrics
 torchtext>=0.12
 tqdm
