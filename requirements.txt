@@ -14,4 +14,4 @@ torch>=1.11
 torchmetrics>=0.9.3
 torchtext>=0.11
 torchvision>=0.11
-tqdm>=4.64.0
+tqdm<=4.64.0
