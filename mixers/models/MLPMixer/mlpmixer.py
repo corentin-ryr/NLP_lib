@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 import torch
 import numpy as np
 from torch import nn
@@ -46,7 +46,7 @@ class MixerBlock(nn.Module):
 
 class MLPMixer(nn.Module):
 
-    def __init__(self, in_channels, dim, num_classes, patch_size:Union[int, tuple[int]], image_size:Union[int, tuple[int]], depth, token_dim, channel_dim):
+    def __init__(self, in_channels, dim, num_classes, patch_size:Union[int, Tuple[int]], image_size:Union[int, Tuple[int]], depth, token_dim, channel_dim):
         super().__init__()
 
         h_patch, w_patch = patch_size if type(patch_size) is tuple else (patch_size, patch_size)
