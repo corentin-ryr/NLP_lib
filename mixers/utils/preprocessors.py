@@ -29,18 +29,33 @@ class collate_callable:
         self.preprocessor = preprocessor
 
     def __call__(self, data):
-        data, label = list(zip(*data))
+        if len(data[0]) == 2:
+            data, label = list(zip(*data))
 
-        if type(label[0]) is torch.Tensor:
-            label = torch.stack(label)
-        elif type(label[0]) is type(data[0]):
+            if type(label[0]) is torch.Tensor:
+                label = torch.stack(label)
+            elif type(label[0]) is type(data[0]):
+                if self.preprocessor:
+                    label = self.preprocessor(label)
+
             if self.preprocessor:
-                label = self.preprocessor(label)
+                data = self.preprocessor(data)
 
-        if self.preprocessor:
-            data = self.preprocessor(data)
+            return data, label
+        if len(data[0]) == 3:
+            data0, data1, label = list(zip(*data))
 
-        return data, label
+            if type(label[0]) is torch.Tensor:
+                label = torch.stack(label)
+            elif type(label[0]) is type(data0[0]):
+                if self.preprocessor:
+                    label = self.preprocessor(label)
+
+            if self.preprocessor:
+                data0 = self.preprocessor(data0)
+                data1 = self.preprocessor(data1)
+            
+            return data0, data1, label
 
 
 def pad_list(l, length):
