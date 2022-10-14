@@ -1,14 +1,10 @@
 beautifulsoup4
 einops
-future
 matplotlib
 nltk
 numpy
-python-dateutil
 regex
 rich
-soupsieve
-termcolor
 torch<=1.12 #Required for azure
 torchmetrics
 torchtext>=0.12 #Required for BERTtokenizer
