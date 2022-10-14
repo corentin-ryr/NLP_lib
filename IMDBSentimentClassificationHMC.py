@@ -15,8 +15,8 @@ if __name__ == "__main__":
 
     preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
 
-    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, limit=10)
-    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat)
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat, limit=10, datasetName="imdbCleaned")
+    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat, datasetName="imdbCleaned")
 
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2)
     

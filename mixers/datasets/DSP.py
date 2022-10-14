@@ -17,8 +17,9 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
         
         self.finalPath = "train" if train else "test"
         
-        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*"))
-        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*"))
+        fileListPos = os.listdir(os.path.join(self._get_path(), "pos"))
+        fileListNeg = os.listdir(os.path.join(self._get_path(), "neg"))
+
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg),
@@ -32,7 +33,7 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
         self.nbCreated = 0
 
     def _read_file(self, idx):
-        filename = self.samples[idx]
+        filename = os.path.join(self._get_path(), "pos" if self.labels[idx] else "neg", self.samples[idx])
         
         if filename.endswith(".json"):
             os.remove(filename)
@@ -55,8 +56,9 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
                 "tokenized": textTokenized,
                 "3grammed": textwordngram
             }
-            
-        with open(filename[:-4] + ".json", 'w') as file:
+        
+        newFilename = os.path.join(self._get_new_path(subDir = "pos" if self.labels[idx] else "neg"), self.samples[idx])
+        with open(newFilename[:-4] + ".json", 'w') as file:
             json.dump(dictionary, file)
             self.nbCreated += 1
 
@@ -64,6 +66,13 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
          
     def _get_path(self):
         return os.path.join(os.getcwd(), "data", "imdb", self.finalPath)
+
+    def _get_new_path(self, subDir:str):
+        directory = os.path.join(os.getcwd(), "data", "imdbCleaned", self.finalPath, subDir)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        return directory
     
     def __len__(self):
         return len(self.labels)
@@ -77,9 +86,10 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
 class IMDBSentimentAnalysis(Dataset):
     kinds = {"raw", "tokenized", "3grammed"}
 
-    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", keepInMemory:bool=False) -> None:
+    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", keepInMemory:bool=False, datasetName:str="imdb") -> None:
         
         self.finalPath = "train" if train else "test"
+        self.datasetName = datasetName
        
         if textFormat not in IMDBSentimentAnalysis.kinds: raise ValueError(f"Kind must be in {IMDBSentimentAnalysis.kinds}")
         self.textFormat = textFormat
@@ -129,7 +139,7 @@ class IMDBSentimentAnalysis(Dataset):
         return dictionary[self.textFormat]
         
     def _get_path(self):
-        return os.path.join(os.getcwd(), "data", "imdb", self.finalPath)
+        return os.path.join(os.getcwd(), "data", self.datasetName, self.finalPath)
     
     def __len__(self):
         return min([len(self.labels), self.limit])
