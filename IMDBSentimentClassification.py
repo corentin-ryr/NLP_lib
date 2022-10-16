@@ -1,3 +1,4 @@
+import argparse
 from mixers.datasets.DSP import IMDBSentimentAnalysis
 from mixers.models.NLPMixer.nlpmixer import NLP_Mixer
 from mixers.trainers.classificationTrainers import ClassificationTrainer
@@ -13,7 +14,7 @@ sentenceLength = 100
 textFormat = "3grammed"
 useGPU = True
 
-if __name__ == "__main__":
+def main():
     device = get_device(useGPU)
 
     preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
@@ -39,3 +40,32 @@ if __name__ == "__main__":
         
     trainer.validate()
 
+def parse_args():
+    # setup arg parser
+    parser = argparse.ArgumentParser()
+
+    # add arguments
+    parser.add_argument("--imdb-path", type=str)
+
+    # parse args
+    args = parser.parse_args()
+
+    # return args
+    return args
+
+
+# run script
+if __name__ == "__main__":
+    # add space in logs
+    print("\n\n")
+    print("*" * 60)
+
+    # parse args
+    args = parse_args()
+
+    # run main function
+    main(args)
+
+    # add space in logs
+    print("*" * 60)
+    print("\n\n")
