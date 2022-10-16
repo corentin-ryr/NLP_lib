@@ -2,8 +2,11 @@ from azure.ai.ml import MLClient
 from azure.identity import DefaultAzureCredential
 from azure.ai.ml import command, Input
 
+
+
+
 ml_client = MLClient(
-    DefaultAzureCredential(), "bcb09b70-6f46-46b4-8090-0f3944e906f0", "ELCA", "Deduplication"
+    DefaultAzureCredential(exclude_interactive_browser_credential=False), "bcb09b70-6f46-46b4-8090-0f3944e906f0", "ELCA", "Deduplication"
 )
 
 # specify aml compute name.
@@ -23,7 +26,7 @@ command_job = command(
     inputs={
         "imdb_path": Input(
             type="uri_folder",
-            path="https://portal.azure.com/#blade/Microsoft_Azure_FileStorage/FileShareMenuBlade/overview/storageAccountId/%2Fsubscriptions%2Fbcb09b70-6f46-46b4-8090-0f3944e906f0%2FresourceGroups%2FELCA%2Fproviders%2FMicrosoft.Storage%2FstorageAccounts%2Fdeduplication8129376456/path/code-391ff5ac-6576-460f-ba4d-7e03433c68b6%2FaclImdb%2F",
+            path="azureml:IMDBCleaned:1",
         )
     },
     compute=compute_target,
