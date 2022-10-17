@@ -18,7 +18,7 @@ except Exception:
 # define the command
 command_job = command(
     code=".",
-    command="python IMDBSentimentClassification.py --imdb-path ${{inputs.iris_csv}}",
+    command="python IMDBSentimentClassification.py --imdb-path ${{inputs.imdb_folder}}",
     environment="torchEnv@latest",
     inputs={
         "imdb_path": Input(

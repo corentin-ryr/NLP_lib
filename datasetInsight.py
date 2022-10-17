@@ -21,7 +21,7 @@ def percentage_hist(l:List[int], n:int):
     return bins, 1 - binValues / len(l)
         
 
-dataset = IMDBSentimentAnalysis(datasetName="imdbCleaned")
+dataset = IMDBSentimentAnalysis(datasetPath="imdbCleaned")
 dataset = MTOPEnglish()
 
 lenghts = []

@@ -14,13 +14,13 @@ sentenceLength = 100
 textFormat = "3grammed"
 useGPU = True
 
-def main():
+def main(args):
     device = get_device(useGPU)
 
     preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
     
-    traindataset = IMDBSentimentAnalysis(textFormat=textFormat,  datasetName="imdbCleaned")
-    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat,  datasetName="imdbCleaned")
+    traindataset = IMDBSentimentAnalysis(textFormat=textFormat,  datasetPath=args.imdb_path)
+    testdataset = IMDBSentimentAnalysis(train=False, textFormat=textFormat,  datasetPath=args.imdb_path)
     
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, device=device)
     
