@@ -148,9 +148,9 @@ class ClassificationTrainerHMC(ClassificationTrainerAbstract):
 
     
     # Helper functions =========================================================================================================== 
-    def save_model(self):
+    def save_model(self, savePath="saves"):
         object_to_save = self.params_hmc_f
-        return super().save_model(object_to_save)
+        return super().save_model(object_to_save, savePath=savePath)
     
     def load_model(self, load_path):
         self.params_hmc_f = torch.load(load_path)

@@ -17,10 +17,9 @@ from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision, MeanSquar
 
 
 class Trainer(ABC):
-    def __init__(self, model:nn.Module, device, save_path:str, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, **kwargs) -> None:
+    def __init__(self, model:nn.Module, device, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, **kwargs) -> None:
         self.model:nn.Module = model.to(device)
         self.device = device
-        self.save_path = save_path
 
         if "shuffle" in kwargs:
             shuffle = kwargs["shuffle"]
@@ -46,8 +45,8 @@ class Trainer(ABC):
         prettyModel = Pretty(self.model)
         self.console.print(Panel(prettyModel, title=f"[green]Device {self.device} | Number of parameters: {total_params}", border_style="green"))
         
-    def save_model(self, object_to_save=None):
-        path = os.path.join(self.save_path, self.model._get_name() + "-" + datetime.today().strftime('%Y-%m-%d-%H-%M'))
+    def save_model(self, object_to_save=None, savePath="saves"):
+        path = os.path.join(savePath, self.model._get_name() + "-" + datetime.today().strftime('%Y-%m-%d-%H-%M'))
         if not os.path.exists(path):
             os.makedirs(path)
 
@@ -71,8 +70,8 @@ class Trainer(ABC):
 
 class ClassificationTrainerAbstract(Trainer):
 
-    def __init__(self, model: nn.Module, device, save_path: str, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, num_classes=2, **kwargs) -> None:
-        super().__init__(model, device, save_path, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
+    def __init__(self, model: nn.Module, device, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, num_classes=2, **kwargs) -> None:
+        super().__init__(model, device, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
         
 
         if "loss" in kwargs: self.criterion = kwargs["loss"]
@@ -107,8 +106,8 @@ class ClassificationTrainerAbstract(Trainer):
 
 class RegressionTrainerAbstract(Trainer):
 
-    def __init__(self, model: nn.Module, device, save_path: str, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, **kwargs) -> None:
-        super().__init__(model, device, save_path, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
+    def __init__(self, model: nn.Module, device, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, **kwargs) -> None:
+        super().__init__(model, device, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
         
         if "loss" in kwargs: self.criterion = kwargs["loss"]
         else:
