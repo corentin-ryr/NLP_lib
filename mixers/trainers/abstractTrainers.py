@@ -48,6 +48,9 @@ class Trainer(ABC):
         
     def save_model(self, object_to_save=None):
         path = os.path.join(self.save_path, self.model._get_name() + "-" + datetime.today().strftime('%Y-%m-%d-%H-%M'))
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         if not object_to_save:
             torch.save(self.model.state_dict(), path)
         else:
