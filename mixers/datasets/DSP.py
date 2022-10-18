@@ -176,7 +176,7 @@ class MTOPEnglish(Dataset):
         self.labels = []
         
         
-        with open(self.path, 'r') as file:
+        with open(self.path, 'r', encoding="utf8") as file:
             lines = file.readlines()
             self.length = len(lines)
             
