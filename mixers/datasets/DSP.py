@@ -165,12 +165,12 @@ class MTOPEnglish(Dataset):
                 "timer": 9,
                 "weather": 10}
     
-    def __init__(self, set:str="train", limit:int=None) -> None:
+    def __init__(self, set:str="train", limit:int=None, datasetPath:str="data/mtop") -> None:
         super().__init__() 
         
         if not set in MTOPEnglish.sets: raise ValueError("Invalid value for set.") 
         
-        self.path = os.path.join("data/mtop/en", set + ".txt")
+        self.path = os.path.join(datasetPath, "en", set + ".txt")
         self.limit = limit if limit else float("inf")
         self.samples = []
         self.labels = []
