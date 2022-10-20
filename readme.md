@@ -42,13 +42,13 @@ trainer.validate()
  You can install the repo with this command:
 
  ```console
-pip install git+https://github.com/corentin-ryr/NLP_lib
+pip install git+https://github.com/corentin-ryr/nlp-toolkit
 ```
 
 Or you can add it to your *requirements.txt*:
 
 ```
-nlp-lib @ git+https://github.com/corentin-ryr/NLP_lib
+nlp-lib @ git+https://github.com/corentin-ryr/nlp-toolkit
 ```
 
 
