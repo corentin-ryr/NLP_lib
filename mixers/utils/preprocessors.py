@@ -34,7 +34,7 @@ class collate_callable:
 
             if type(label[0]) is torch.Tensor:
                 label = torch.stack(label)
-            elif type(label[0]) is type(data[0]):
+            elif type(label[0]) is type(data[0]): # Happens for autoencoding datasets for instance (the label is a copy of the data)
                 if self.preprocessor:
                     label = self.preprocessor(label)
 
