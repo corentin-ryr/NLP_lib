@@ -65,7 +65,7 @@ class Trainer(ABC):
 
     @abstractmethod
     def validate(self):
-        pass
+        self.console.print(Align("\n\nStarting validation at " + datetime.now().strftime("%H:%M:%S"), align="center"))
 
 
 class ClassificationTrainerAbstract(Trainer):
