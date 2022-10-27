@@ -41,7 +41,7 @@ class Trainer(ABC):
 
         
     def summarize_model(self):
-        total_params = sum(p.numel() for p in self.model.parameters())
+        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         prettyModel = Pretty(self.model)
         self.console.print(Panel(prettyModel, title=f"[green]Device {self.device} | Number of parameters: {total_params}", border_style="green"))
         
