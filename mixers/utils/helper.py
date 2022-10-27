@@ -24,6 +24,7 @@ class InteractivePlot():
         self.axes.set_title("Loss every epoch")
         self.lines =[]
         self.vspan = []
+        self.maxValX = 300
 
         for i in range(num_axes):
             self.val.append([])
@@ -45,7 +46,7 @@ class InteractivePlot():
             self.lines[index].set_xdata(self.i)
             self.lines[index].set_ydata(self.val[index])
 
-        self.axes.set_xlim(0, self.nb_epochs)
+        self.axes.set_xlim(0, self.maxValX)
         self.axes.set_ylim(0, max(max(self.val)) * 1.5, 0.1)
         
         for span in self.vspan:
