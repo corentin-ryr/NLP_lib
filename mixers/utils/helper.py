@@ -46,8 +46,8 @@ class InteractivePlot():
             self.lines[index].set_xdata(self.i)
             self.lines[index].set_ydata(self.val[index])
 
-        self.axes.set_xlim(0, self.maxValX)
-        self.axes.set_ylim(0, max(max(self.val)) * 1.5, 0.1)
+        self.axes.set_xlim(0, len(self.val[0]))
+        self.axes.set_ylim(0, max([max(l) for l in self.val]) * 1.2, 0.1)
         
         for span in self.vspan:
             span.remove()
