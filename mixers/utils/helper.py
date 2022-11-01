@@ -55,6 +55,9 @@ class InteractivePlot():
 
         plt.draw()
         plt.pause(1e-20)
+
+    def save_plot(self, path):
+        self.axes.figure.savefig(path + "/loss.png")   
     
 def confusion_matrix_renderable(metric:ConfusionMatrix) -> Table:
     confMat = metric.compute()
