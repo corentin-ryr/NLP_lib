@@ -17,7 +17,7 @@ from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision, MeanSquar
 
 
 class Trainer(ABC):
-    def __init__(self, model:nn.Module, device, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, num_workers:int=4 **kwargs) -> None:
+    def __init__(self, model:nn.Module, device, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, num_workers:int=4, **kwargs) -> None:
         self.model:nn.Module = model.to(device)
         self.device = device
 
