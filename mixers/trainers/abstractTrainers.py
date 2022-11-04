@@ -17,7 +17,7 @@ from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision, MeanSquar
 
 
 class Trainer(ABC):
-    def __init__(self, model:nn.Module, device, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, **kwargs) -> None:
+    def __init__(self, model:nn.Module, device, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, num_workers:int=4 **kwargs) -> None:
         self.model:nn.Module = model.to(device)
         self.device = device
 
@@ -26,13 +26,13 @@ class Trainer(ABC):
         else: shuffle = True
 
         if traindataset: 
-            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
+            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
             if collate_fn: self.trainloader.collate_fn = collate_fn
         if testdataset: 
-            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
+            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
             if collate_fn: self.testloader.collate_fn = collate_fn
         if evaldataset: 
-            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
+            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
             if collate_fn: self.evalloader.collate_fn = collate_fn
 
         self.batch_size = batch_size
