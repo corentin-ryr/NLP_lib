@@ -13,7 +13,7 @@ from torchmetrics.metric import Metric
 
 class InteractivePlot():
     
-    def __init__(self, num_axes:int) -> None:
+    def __init__(self, num_axes:int, axes_names=None) -> None:
         """
         num_axes is the number of variables that should be plotted.
         """
@@ -26,10 +26,12 @@ class InteractivePlot():
         self.vspan = []
         self.maxValX = 300
 
+        if not axes_names or len(axes_names) != num_axes: axes_names = [str(i) for i in range(num_axes)]
+
         for i in range(num_axes):
             self.val.append([])
             self.lines.append([])
-            self.lines[i], = self.axes.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4)
+            self.lines[i], = self.axes.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4, label=axes_names[i])
             
 
     def update_plot(self, *args):
@@ -48,6 +50,7 @@ class InteractivePlot():
 
         self.axes.set_xlim(0, len(self.val[0]))
         self.axes.set_ylim(0, max([max(l) for l in self.val]) * 1.2, 0.1)
+        self.axes.legend()
         
         for span in self.vspan:
             span.remove()
