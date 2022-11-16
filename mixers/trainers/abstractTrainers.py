@@ -46,19 +46,13 @@ class Trainer(ABC):
         self.console.print(Panel(prettyModel, title=f"[green]Device {self.device} | Number of parameters: {total_params}", border_style="green"))
         
     def save_model(self, object_to_save=None, savePath="saves", checkpoint:bool=False):
-        path = os.path.join(savePath, self.model._get_name() + "-" + datetime.today().strftime('%Y-%m-%d-%H-%M'))
+        path = os.path.join(savePath, self.model._get_name() + ("-cp-" if checkpoint else "-") + datetime.today().strftime('%Y-%m-%d-%H-%M'))
         if not os.path.exists(savePath):
             os.makedirs(savePath)
 
-        if not object_to_save:
-            if checkpoint:
-                object_to_save = {'model_state_dict': self.model.state_dict(), 'optimizer_state_dict': self.optimizer.state_dict()}
-            else: object_to_save = self.model.state_dict()
-        
         torch.save(object_to_save, path)
     
     def load_model(self, load_path):
-        # Check if it is a checkpoint and if so setup the optimizer
         self.model.load_state_dict(torch.load(load_path))
 
     @abstractmethod
