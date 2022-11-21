@@ -29,10 +29,11 @@ class InteractivePlot():
         self.lines =[self.ax1.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4)[0]]
         
 
-        for i in range(num_axes - 1):
-            self.val.append([])
-
+        for _ in range(num_axes - 1):
             ax = self.ax1.twinx()
+
+            self.val.append([])
+            self.axes.append(ax)
             self.lines.append(ax.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4)[0])
             
 
