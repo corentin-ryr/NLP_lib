@@ -29,12 +29,12 @@ class InteractivePlot():
         self.lines =[self.ax1.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4, label=axes_names[0] if axes_names else "")[0]]
         
 
-        for _ in range(num_axes - 1):
+        for i in range(1, num_axes):
             ax = self.ax1.twinx()
 
             self.val.append([])
             self.axes.append(ax)
-            self.lines.append(ax.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4, label=axes_names[0] if axes_names else "")[0])
+            self.lines.append(ax.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4, label=axes_names[i] if axes_names else "")[0])
         
         self.ax1.legend(handles=self.lines)
 
