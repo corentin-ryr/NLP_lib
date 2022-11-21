@@ -6,7 +6,7 @@ from azure.ai.ml import command, Input
 
 
 ml_client = MLClient(
-    DefaultAzureCredential(exclude_interactive_browser_credential=False), "bcb09b70-6f46-46b4-8090-0f3944e906f0", "ELCA", "Deduplication"
+    DefaultAzureCredential(), "bcb09b70-6f46-46b4-8090-0f3944e906f0", "ELCA", "Deduplication"
 )
 
 # specify aml compute name.
@@ -20,8 +20,8 @@ except Exception:
 
 # define the command
 command_job = command(
-    code=".",
-    command="python IMDBSentimentClassification.py --imdb-path ${{inputs.iris_csv}}",
+    code="./azuremlJob.py",
+    command="python IMDBSentimentClassification.py --imdb-path ${{inputs.imdb_path}}",
     environment="torchEnv@latest",
     inputs={
         "imdb_path": Input(

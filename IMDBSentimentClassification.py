@@ -14,7 +14,7 @@ sentenceLength = 100
 textFormat = "3grammed"
 useGPU = True
 
-def main():
+def main(args):
     device = get_device(useGPU)
 
     preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)

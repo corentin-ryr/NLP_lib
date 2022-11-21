@@ -14,13 +14,13 @@ if __name__ == "__main__":
     
     preprocessor = ProjectiveLayer(N=64, S=sentenceLength, M=1024, W=1)
 
-    traindataset = MTOPEnglish()
+    traindataset = MTOPEnglish(limit=100)
     testdataset = MTOPEnglish(set="test")
 
     model = NLP_Mixer(sentenceLength=sentenceLength, depth=2, nbClasses=11, device=device)
   
     trainer = ClassificationTrainer(model, nb_epochs=20, device=device, traindataset=traindataset, testdataset=testdataset,
-                                    batch_size=256, collate_fn=collate_callable(preprocessor), num_classes=11, loss=nn.CrossEntropyLoss)
+                                    batch_size=256, collate_fn=collate_callable(preprocessor), num_classes=11, loss=nn.CrossEntropyLoss, display_loss=True)
 
     trainer.summarize_model()
     
