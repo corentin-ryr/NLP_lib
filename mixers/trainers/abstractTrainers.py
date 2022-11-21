@@ -17,23 +17,22 @@ from torchmetrics import ConfusionMatrix, Accuracy, Recall, Precision, MeanSquar
 
 
 class Trainer(ABC):
-    def __init__(self, model:nn.Module, device, save_path:str, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, **kwargs) -> None:
+    def __init__(self, model:nn.Module, device, traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, batch_size:int=256, collate_fn=None, num_workers:int=4, **kwargs) -> None:
         self.model:nn.Module = model.to(device)
         self.device = device
-        self.save_path = save_path
 
         if "shuffle" in kwargs:
             shuffle = kwargs["shuffle"]
         else: shuffle = True
 
         if traindataset: 
-            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
+            self.trainloader = DataLoader(traindataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
             if collate_fn: self.trainloader.collate_fn = collate_fn
         if testdataset: 
-            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
+            self.testloader = DataLoader(testdataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
             if collate_fn: self.testloader.collate_fn = collate_fn
         if evaldataset: 
-            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=shuffle, num_workers=4)
+            self.evalloader = DataLoader(evaldataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
             if collate_fn: self.evalloader.collate_fn = collate_fn
 
         self.batch_size = batch_size
@@ -42,16 +41,16 @@ class Trainer(ABC):
 
         
     def summarize_model(self):
-        total_params = sum(p.numel() for p in self.model.parameters())
+        total_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         prettyModel = Pretty(self.model)
         self.console.print(Panel(prettyModel, title=f"[green]Device {self.device} | Number of parameters: {total_params}", border_style="green"))
         
-    def save_model(self, object_to_save=None):
-        path = os.path.join(self.save_path, self.model._get_name() + "-" + datetime.today().strftime('%Y-%m-%d-%H-%M'))
-        if not object_to_save:
-            torch.save(self.model.state_dict(), path)
-        else:
-            torch.save(object_to_save, path)
+    def save_model(self, object_to_save=None, savePath="saves", checkpoint:bool=False):
+        path = os.path.join(savePath, self.model._get_name() + ("-cp-" if checkpoint else "-") + datetime.today().strftime('%Y-%m-%d-%H-%M'))
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
+
+        torch.save(object_to_save, path)
     
     def load_model(self, load_path):
         self.model.load_state_dict(torch.load(load_path))
@@ -63,13 +62,13 @@ class Trainer(ABC):
 
     @abstractmethod
     def validate(self):
-        pass
+        self.console.print(Align("\n\nStarting validation at " + datetime.now().strftime("%H:%M:%S"), align="center"))
 
 
 class ClassificationTrainerAbstract(Trainer):
 
-    def __init__(self, model: nn.Module, device, save_path: str, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, num_classes=2, **kwargs) -> None:
-        super().__init__(model, device, save_path, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
+    def __init__(self, model: nn.Module, device, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, num_classes=2, **kwargs) -> None:
+        super().__init__(model, device, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
         
 
         if "loss" in kwargs: self.criterion = kwargs["loss"]
@@ -104,8 +103,8 @@ class ClassificationTrainerAbstract(Trainer):
 
 class RegressionTrainerAbstract(Trainer):
 
-    def __init__(self, model: nn.Module, device, save_path: str, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, **kwargs) -> None:
-        super().__init__(model, device, save_path, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
+    def __init__(self, model: nn.Module, device, traindataset: Dataset = None, testdataset: Dataset = None, evaldataset: Dataset = None, batch_size: int = 256, collate_fn=None, **kwargs) -> None:
+        super().__init__(model, device, traindataset, testdataset, evaldataset, batch_size, collate_fn, **kwargs)
         
         if "loss" in kwargs: self.criterion = kwargs["loss"]
         else:

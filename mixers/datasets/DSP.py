@@ -86,10 +86,10 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
 class IMDBSentimentAnalysis(Dataset):
     kinds = {"raw", "tokenized", "3grammed"}
 
-    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", keepInMemory:bool=False, datasetName:str="imdb") -> None:
+    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", keepInMemory:bool=False, datasetPath:str="data/imdb") -> None:
         
         self.finalPath = "train" if train else "test"
-        self.datasetName = datasetName
+        self.datasetPath = datasetPath
        
         if textFormat not in IMDBSentimentAnalysis.kinds: raise ValueError(f"Kind must be in {IMDBSentimentAnalysis.kinds}")
         self.textFormat = textFormat
@@ -99,7 +99,7 @@ class IMDBSentimentAnalysis(Dataset):
         fileListPos = glob.glob(os.path.join(self._get_path(), "pos", "*.json"))
         fileListNeg = glob.glob(os.path.join(self._get_path(), "neg", "*.json"))
 
-        if len(fileListNeg) + len(fileListPos) == 0: raise ValueError("No files in the directory data/imdb/")
+        if len(fileListNeg) + len(fileListPos) == 0: raise ValueError(f"No files in the directory {self._get_path()}")
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg), 
@@ -139,7 +139,7 @@ class IMDBSentimentAnalysis(Dataset):
         return dictionary[self.textFormat]
         
     def _get_path(self):
-        return os.path.join(os.getcwd(), "data", self.datasetName, self.finalPath)
+        return os.path.join(os.getcwd(), self.datasetPath, self.finalPath)
     
     def __len__(self):
         return min([len(self.labels), self.limit])
@@ -165,18 +165,18 @@ class MTOPEnglish(Dataset):
                 "timer": 9,
                 "weather": 10}
     
-    def __init__(self, set:str="train", limit:int=None) -> None:
+    def __init__(self, set:str="train", limit:int=None, datasetPath:str="data/mtop") -> None:
         super().__init__() 
         
         if not set in MTOPEnglish.sets: raise ValueError("Invalid value for set.") 
         
-        self.path = os.path.join("data/mtop/en", set + ".txt")
+        self.path = os.path.join(datasetPath, "en", set + ".txt")
         self.limit = limit if limit else float("inf")
         self.samples = []
         self.labels = []
         
         
-        with open(self.path, 'r') as file:
+        with open(self.path, 'r', encoding="utf8") as file:
             lines = file.readlines()
             self.length = len(lines)
             

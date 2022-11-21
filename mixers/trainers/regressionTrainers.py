@@ -14,10 +14,10 @@ from rich.progress import Progress
 
 class RegressionTrainerHMC(RegressionTrainerAbstract):
 
-    def __init__(self, model:nn.Module, device='cpu', save_path:str="saves/", num_samples:int=100,
+    def __init__(self, model:nn.Module, device='cpu', num_samples:int=100,
                  traindataset:Dataset=None, testdataset:Dataset=None, evaldataset:Dataset=None, 
                  batch_size:int=256, collate_fn=None, **kwargs) -> None:
-        super().__init__(model, device, save_path, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, 
+        super().__init__(model, device, traindataset=traindataset, testdataset=testdataset, evaldataset=evaldataset, 
                         batch_size=batch_size, collate_fn=collate_fn, kwargs=kwargs)
         
         self.step_size = 0.0005
@@ -71,9 +71,9 @@ class RegressionTrainerHMC(RegressionTrainerAbstract):
 
     
     # Helper functions =========================================================================================================== 
-    def save_model(self):
+    def save_model(self, savePath="saves"):
         object_to_save = self.params_hmc_f
-        return super().save_model(object_to_save)
+        return super().save_model(object_to_save, savePath=savePath)
     
     def load_model(self, load_path):
         self.params_hmc_f = torch.load(load_path)

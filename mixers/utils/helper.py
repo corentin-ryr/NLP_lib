@@ -13,7 +13,7 @@ from torchmetrics.metric import Metric
 
 class InteractivePlot():
     
-    def __init__(self, num_axes:int) -> None:
+    def __init__(self, num_axes:int, axes_names=None) -> None:
         """
         num_axes is the number of variables that should be plotted.
         """
@@ -55,6 +55,9 @@ class InteractivePlot():
 
         plt.draw()
         plt.pause(1e-20)
+
+    def save_plot(self, path):
+        self.axes.figure.savefig(path + "/loss.png")   
     
 def confusion_matrix_renderable(metric:ConfusionMatrix) -> Table:
     confMat = metric.compute()
