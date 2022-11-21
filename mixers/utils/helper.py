@@ -20,7 +20,7 @@ class InteractivePlot():
         self.i = []
         self.val = []
         plt.ion()
-        _, self.ax1 = plt.subplots()
+        self.figure, self.ax1 = plt.subplots()
         self.ax1.set_title("Loss every epoch")
 
         
@@ -60,7 +60,7 @@ class InteractivePlot():
         plt.pause(1e-20)
 
     def save_plot(self, path):
-        self.axes.figure.savefig(path + "/loss.png")   
+        self.figure.savefig(path + "/loss.png")   
     
 def confusion_matrix_renderable(metric:ConfusionMatrix) -> Table:
     confMat = metric.compute()
