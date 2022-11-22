@@ -20,6 +20,7 @@ class InteractivePlot():
         self.i = []
         self.val = []
         plt.ion()
+        plt.grid()
         self.figure, self.ax1 = plt.subplots()
         self.ax1.set_title("Loss every epoch")
 
@@ -56,7 +57,6 @@ class InteractivePlot():
             self.axes[index].set_xlim(0, len(self.val[0]))
             self.axes[index].set_ylim(0, max(self.val[index]) * 1.5)
 
-        plt.grid()
         plt.draw()
         plt.pause(1e-20)
 
