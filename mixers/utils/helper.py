@@ -20,7 +20,7 @@ class InteractivePlot():
         self.i = []
         self.val = []
         plt.ion()
-        plt.grid()
+        
         self.figure, self.ax1 = plt.subplots()
         self.ax1.set_title("Loss every epoch")
 
@@ -38,6 +38,7 @@ class InteractivePlot():
             self.lines.append(ax.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4, label=axes_names[i] if axes_names else "")[0])
         
         self.ax1.legend(handles=self.lines)
+        plt.grid()
 
 
     def update_plot(self, *args):
