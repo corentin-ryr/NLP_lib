@@ -1,3 +1,4 @@
+from typing import List
 import matplotlib.pyplot as plt
 import random
 
@@ -12,23 +13,33 @@ from torchmetrics.metric import Metric
 
 class InteractivePlot():
     
-    def __init__(self, num_axes:int) -> None:
+    def __init__(self, num_axes:int, axes_names=None) -> None:
         """
         num_axes is the number of variables that should be plotted.
         """
         self.i = []
         self.val = []
-        plt.ion()
-        self.axes = plt.gca()
-        self.axes.set_title("Loss every epoch")
-        self.lines =[]
-        self.vspan = []
+        # plt.ion()
+        
+        self.figure, self.ax1 = plt.subplots()
+        self.ax1.set_title("Loss every epoch")
 
-        for i in range(num_axes):
+        
+        self.val.append([])
+        self.axes = [self.ax1]
+        self.lines =[self.ax1.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4, label=axes_names[0] if axes_names else "")[0]]
+        
+
+        for i in range(1, num_axes):
+            ax = self.ax1.twinx()
+
             self.val.append([])
-            self.lines.append([])
-            self.lines[i], = self.axes.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4)
-            
+            self.axes.append(ax)
+            self.lines.append(ax.plot([], self.val[0], '-', c=[random.random() for _ in range(3)], linewidth=1.5, markersize=4, label=axes_names[i] if axes_names else "")[0])
+        
+        self.ax1.legend(handles=self.lines)
+        self.ax1.grid()
+
 
     def update_plot(self, *args):
         """
@@ -44,15 +55,13 @@ class InteractivePlot():
             self.lines[index].set_xdata(self.i)
             self.lines[index].set_ydata(self.val[index])
 
-        self.axes.set_xlim(0, self.nb_epochs)
-        self.axes.set_ylim(0, max(max(self.val)) * 1.5, 0.1)
-        
-        for span in self.vspan:
-            span.remove()
-        self.vspan.clear()
+            self.axes[index].set_xlim(0, len(self.val[0]))
+            self.axes[index].set_ylim(0, max(self.val[index]) * 1.5)
 
-        plt.draw()
-        plt.pause(1e-20)
+        # plt.pause(1e-20)
+
+    def save_plot(self, path):
+        self.figure.savefig(path + "/loss.png")    
     
 def confusion_matrix_renderable(metric:ConfusionMatrix) -> Table:
     confMat = metric.compute()
@@ -68,7 +77,7 @@ def confusion_matrix_renderable(metric:ConfusionMatrix) -> Table:
         
     return confusionTable
 
-def generate_dashboard(metric_set:list[Metric]):
+def generate_dashboard(metric_set:List[Metric]):
     metricsTable = Table()
 
     metricsTable.add_column("Metric", justify="right", style="cyan", no_wrap=True)
@@ -94,19 +103,3 @@ def get_device(useGPU):
         return torch.device("mps")
 
     return torch.device("cpu")
-
-def pad_list(l, length):
-    l = l[:length]
-    l += [""] * (length - len(l))
-    return l
-
-class collate_callable():
-    def __init__(self, sentenceLength:int=200) -> None:
-        self.sentenceLength = sentenceLength
-
-    def __call__(self, data):
-        data, label = list(zip(*data))
-        label = torch.stack(label)
-
-        return data, label
-

@@ -9,16 +9,17 @@ import json
 from bs4 import BeautifulSoup
 import glob
 
-from Mixers.Helper.helper import pad_list
+from mixers.models.toyModel import ToyModel
 
 class IMDBSentimentAnalysisDatasetCreator(Dataset):
     
-    def __init__(self, train=True, shuffle=True, limit=None) -> None:
+    def __init__(self, train=True) -> None:
         
-        self.dirpath = "data/imdb/" + ("train" if train else "test")
+        self.finalPath = "train" if train else "test"
         
-        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*"))
-        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*"))
+        fileListPos = os.listdir(os.path.join(self._get_path(), "pos"))
+        fileListNeg = os.listdir(os.path.join(self._get_path(), "neg"))
+
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg),
@@ -32,13 +33,13 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
         self.nbCreated = 0
 
     def _read_file(self, idx):
-        filename = self.samples[idx]
+        filename = os.path.join(self._get_path(), "pos" if self.labels[idx] else "neg", self.samples[idx])
         
         if filename.endswith(".json"):
             os.remove(filename)
             return "Deleted"
 
-        with open(filename, 'r') as file:
+        with open(filename, 'r', encoding="utf8") as file:
             text = "".join(file.readlines())
             text = BeautifulSoup(text, "lxml").text
 
@@ -55,15 +56,23 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
                 "tokenized": textTokenized,
                 "3grammed": textwordngram
             }
-            
-        with open(filename[:-4] + ".json", 'w') as file:
+        
+        newFilename = os.path.join(self._get_new_path(subDir = "pos" if self.labels[idx] else "neg"), self.samples[idx])
+        with open(newFilename[:-4] + ".json", 'w') as file:
             json.dump(dictionary, file)
             self.nbCreated += 1
 
         return dictionary["raw"]
-        
+         
     def _get_path(self):
-        return os.path.join(os.getcwd(), self.dirpath)
+        return os.path.join(os.getcwd(), "data", "imdb", self.finalPath)
+
+    def _get_new_path(self, subDir:str):
+        directory = os.path.join(os.getcwd(), "data", "imdbCleaned", self.finalPath, subDir)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        return directory
     
     def __len__(self):
         return len(self.labels)
@@ -77,20 +86,20 @@ class IMDBSentimentAnalysisDatasetCreator(Dataset):
 class IMDBSentimentAnalysis(Dataset):
     kinds = {"raw", "tokenized", "3grammed"}
 
-    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", sentenceLength:int=200, keepInMemory:bool=False) -> None:
+    def __init__(self, train=True, shuffle=True, limit=None, textFormat:str="raw", keepInMemory:bool=False, datasetPath:str="data/imdb") -> None:
         
-        self.dirpath = "data/imdb/" + ("train" if train else "test")
+        self.finalPath = "train" if train else "test"
+        self.datasetPath = datasetPath
        
         if textFormat not in IMDBSentimentAnalysis.kinds: raise ValueError(f"Kind must be in {IMDBSentimentAnalysis.kinds}")
         self.textFormat = textFormat
         
-        self.sentenceLength = sentenceLength
         self.keepInMemory = keepInMemory
 
-        fileListPos = glob.glob(os.path.join(self._get_path(), "pos/*.json"))
-        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg/*.json"))
+        fileListPos = glob.glob(os.path.join(self._get_path(), "pos", "*.json"))
+        fileListNeg = glob.glob(os.path.join(self._get_path(), "neg", "*.json"))
 
-        print(len(fileListNeg) + len(fileListPos))
+        if len(fileListNeg) + len(fileListPos) == 0: raise ValueError(f"No files in the directory {self._get_path()}")
         
         self.samples = np.concatenate(( 
                                        np.array(fileListNeg), 
@@ -127,10 +136,10 @@ class IMDBSentimentAnalysis(Dataset):
 
         if self.textFormat == "raw": return dictionary[self.textFormat]
 
-        return pad_list(dictionary[self.textFormat], self.sentenceLength)
+        return dictionary[self.textFormat]
         
     def _get_path(self):
-        return os.path.join(os.getcwd(), self.dirpath)
+        return os.path.join(os.getcwd(), self.datasetPath, self.finalPath)
     
     def __len__(self):
         return min([len(self.labels), self.limit])
@@ -156,18 +165,18 @@ class MTOPEnglish(Dataset):
                 "timer": 9,
                 "weather": 10}
     
-    def __init__(self, set:str="train", limit:int=None) -> None:
+    def __init__(self, set:str="train", limit:int=None, datasetPath:str="data/mtop") -> None:
         super().__init__() 
         
         if not set in MTOPEnglish.sets: raise ValueError("Invalid value for set.") 
         
-        self.path = os.path.join("data/mtop/en", set + ".txt")
+        self.path = os.path.join(datasetPath, "en", set + ".txt")
         self.limit = limit if limit else float("inf")
         self.samples = []
         self.labels = []
         
         
-        with open(self.path, 'r') as file:
+        with open(self.path, 'r', encoding="utf8") as file:
             lines = file.readlines()
             self.length = len(lines)
             
@@ -190,7 +199,39 @@ class MTOPEnglish(Dataset):
         
         return sample, label
 
+class ToyDataset(Dataset):
 
+    model = None
+
+    def __init__(self, train:bool=True) -> None:
+        super().__init__()
+        self.train = train
+
+        x = np.zeros(120)
+        x[:40] = np.random.uniform(-10, -6, 40)
+        x[40:80] = np.random.uniform(6, 10, 40)
+        x[80:] = np.random.uniform(14, 18, 40)
+        self.x = torch.Tensor(np.array([x,x*x])).T
+        
+        x_truth = np.linspace(-15,25, 8000)
+        self.x_truth = torch.Tensor(np.array([x_truth, x_truth*x_truth])).T
+        
+        
+        if not ToyDataset.model: ToyDataset.model = ToyModel()
+        ToyDataset.model.eval()
+
+        self.y = ToyDataset.model(self.x).detach().numpy() + np.random.normal(0, 0.02, size=(120,1))
+        self.y_truth = ToyDataset.model(self.x_truth).detach().numpy()
+
+
+    def __getitem__(self, index):
+        if self.train:
+            return self.x[index], self.y[index]
+        else:
+            return self.x_truth[index], self.y_truth[index]
+
+    def __len__(self):
+        return len(self.x) if self.train else len(self.x_truth)
 
 
 if __name__ == "__main__":

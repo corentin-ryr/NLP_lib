@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 import os
 import numpy as np
 
@@ -12,7 +12,7 @@ from rich.prompt import Prompt
 
 class InteractiveInferenceClassification():
 
-    def __init__(self, model:nn.Module, loadFromFile:Union[str, bool]=True, device:str="cpu", classesName:list[str]=None) -> None:
+    def __init__(self, model:nn.Module, loadFromFile:Union[str, bool]=True, device:str="cpu", classesName:List[str]=None) -> None:
         self.model = model
         self.loadPath = None
         self.device = device
