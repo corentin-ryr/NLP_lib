@@ -5,7 +5,7 @@ nltk
 numpy
 regex
 rich
-torch>=1.12 #Required for azure
+torch>=1.13 #Required for azure
 torchmetrics==0.10
 torchtext>=0.12 #Required for BERTtokenizer
 tqdm
